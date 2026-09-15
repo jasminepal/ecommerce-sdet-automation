@@ -1,0 +1,15 @@
+# Virtual environment
+backend/.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local SQLite database
+backend/ecommerce.db
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
