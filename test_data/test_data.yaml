@@ -1,0 +1,17 @@
+products:
+  - name: Laptop
+    price: 50000
+    stock: 10
+
+  - name: Mouse
+    price: 1000
+    stock: 20
+
+  - name: Keyboard
+    price: 2000
+    stock: 15
+
+  - another_product:
+    name: Mouse
+    price: 1000
+    stock: 20
