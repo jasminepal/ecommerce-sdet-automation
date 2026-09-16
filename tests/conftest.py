@@ -1,4 +1,5 @@
 import pytest 
+from pathlib import Path
 from framework.api_client import APIClient
 from framework.data_reader import DataReader
 
@@ -7,8 +8,25 @@ from framework.data_reader import DataReader
 def api_client():
     return APIClient()
 
+
+# read test_data.yaml file path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TEST_DATA_FILE = PROJECT_ROOT / "test_data" / "test_data.yaml"
+
 # Responsible for CRUD with test data file
+reader = DataReader(TEST_DATA_FILE)
+test_data = reader.read_date()
+# Get the list of products
+products = test_data["products"]
+
+# Gives entire yaml
 @pytest.fixture
 def test_data():
-    reader = DataReader("test_data/test_data.yaml")
-    return reader.read_date()
+    return test_data
+
+@pytest.fixture(
+    params=products, 
+    ids = [product["name"] for product in products]
+)
+def product_data(request):
+    return request.param
