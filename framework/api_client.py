@@ -12,4 +12,8 @@ class APIClient:
         return requests.put(f"{BASE_URL}{endpoint}", json = request_body)
     
     def patch(self, endpoint, request_body):
-            return requests.patch(f"{BASE_URL}{endpoint}", json = request_body)
+        return requests.patch(f"{BASE_URL}{endpoint}", json = request_body)
+        
+    def delete(self, endpoint):
+        return requests.delete(f"{BASE_URL}{endpoint}")
+    

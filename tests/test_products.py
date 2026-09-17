@@ -92,3 +92,21 @@ def test_patch_product_by_id(api_client, product_data):
     
     assert response_data["id"] == product_id
     assert response_data[random_key] == body[random_key]
+    
+    
+    
+def test_delete_product_by_id(api_client, product_data):
+    created_product_response = api_client.post("/products", product_data)
+    logger.info(f"Status code: {created_product_response.status_code}")
+    logger.info(f"Product Created")
+    assert created_product_response.status_code == 201
+    product_id = created_product_response.json()["id"]
+    logger.info(f"Product id fetched")
+    
+    response = api_client.delete(f"/products/{product_id}")
+    print(response.url)
+    print(response.status_code)
+    print(response.text)
+    assert response.status_code == 200
+    response_data = response.json()
+    
