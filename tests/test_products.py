@@ -1,10 +1,11 @@
 import random
+from framework.logger import logger
 
 
 def test_get_products(api_client):
     response = api_client.get("/products")
     # print(f"Response body: {response.json()}")
-    
+    logger.info(f"Status code: {response.status_code}")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
     
@@ -14,6 +15,8 @@ def test_create_product(api_client, product_data):
     # product_data = test_data["products"]["valid_product"]
 
     response = api_client.post("/products", product_data)
+    logger.info(f"Status code: {response.status_code}")
+    logger.info(f"Product Created")
     response_data = response.json()
     
     assert "id" in response_data
@@ -25,8 +28,11 @@ def test_create_product(api_client, product_data):
 
 def test_get_product_by_id(api_client, product_data):
     created_product_response = api_client.post("/products", product_data)
+    logger.info(f"Status code: {created_product_response.status_code}")
+    logger.info(f"Product Created")
     assert created_product_response.status_code == 201
     product_id = created_product_response.json()["id"]
+    logger.info(f"Product id fetched")
     # print(f"product id {product_id}")
     
     response = api_client.get(f"/products/{product_id}")
@@ -43,8 +49,11 @@ def test_get_product_by_id(api_client, product_data):
 
 def test_update_product_by_id(api_client, product_data):
     created_product_response = api_client.post("/products", product_data)
+    logger.info(f"Status code: {created_product_response.status_code}")
+    logger.info(f"Product Created")
     assert created_product_response.status_code == 201
     product_id = created_product_response.json()["id"]
+    logger.info(f"Product id fetched")
     
     updated_product_data = {
         'name': f"Update {product_data['name']}", 
@@ -62,8 +71,11 @@ def test_update_product_by_id(api_client, product_data):
 
 def test_patch_product_by_id(api_client, product_data):
     created_product_response = api_client.post("/products", product_data)
+    logger.info(f"Status code: {created_product_response.status_code}")
+    logger.info(f"Product Created")
     assert created_product_response.status_code == 201
     product_id = created_product_response.json()["id"]
+    logger.info(f"Product id fetched")
     
     random_key = random.choice(list(product_data.keys()))
     random_value = product_data[random_key]

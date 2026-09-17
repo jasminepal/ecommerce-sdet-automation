@@ -13,3 +13,6 @@ backend/ecommerce.db
 
 # IDE
 .vscode/
+
+# log file
+logs/
