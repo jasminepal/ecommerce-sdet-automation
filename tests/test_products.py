@@ -110,3 +110,12 @@ def test_delete_product_by_id(api_client, product_data):
     assert response.status_code == 200
     response_data = response.json()
     
+
+
+
+# negative TCs
+def test_create_product_with_invalid_data(api_client, invalid_product_data):
+    response = api_client.post(f"/products", invalid_product_data)
+    # response_data = response.json()
+    
+    assert response.status_code == 422

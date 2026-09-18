@@ -18,6 +18,7 @@ reader = DataReader(TEST_DATA_FILE)
 test_data = reader.read_date()
 # Get the list of products
 products = test_data["products"]
+invalid_products = test_data["invalid_products"]
 
 # Gives entire yaml
 @pytest.fixture
@@ -30,3 +31,11 @@ def test_data():
 )
 def product_data(request):
     return request.param
+
+@pytest.fixture(
+    params=invalid_products,
+    ids=[invalid_product["test_case"] for invalid_product in invalid_products]
+)
+def invalid_product_data(request):
+    return request.param
+

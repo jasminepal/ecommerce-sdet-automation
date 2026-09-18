@@ -10,3 +10,21 @@ products:
   - name: Keyboard
     price: 2000
     stock: 15
+
+invalid_products:
+  - test_case: invalid_price
+    name: Laptop
+    price: -500
+    stock: 10
+
+  - test_case: empty_name
+    name: ""
+    price: 50000
+    stock: 10
+
+  - test_case: negative_stock
+    name: Laptop
+    price: 50000
+    stock: -10
+
+# Run it : python -m pytest -v -s tests/test_products.py
