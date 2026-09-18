@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 from framework.api_client import APIClient
 from framework.data_reader import DataReader
+from framework.logger import logger
 
 # Responsible for dealing with the APi URL/requests
 @pytest.fixture
@@ -39,3 +40,17 @@ def product_data(request):
 def invalid_product_data(request):
     return request.param
 
+@pytest.fixture
+def created_product(api_client, product_data):
+    response = api_client.post("/products", product_data)
+    logger.info(f"Product Created")
+    assert response.status_code == 201
+    created_product_data = response.json()
+    
+    yield created_product_data
+    
+    product_id = created_product_data["id"]
+    delete_product_id_response = api_client.delete(f"/products/{product_id}")
+    assert delete_product_id_response.status_code == 200
+    
+    

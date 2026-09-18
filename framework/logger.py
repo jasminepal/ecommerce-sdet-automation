@@ -7,7 +7,7 @@ console_handler = logging.StreamHandler()
 file_handler = logging.FileHandler("logs/test.log")  # Add the loggers to logs/test.log file
 
 formatter = logging.Formatter(
-    "%(asctime)s | %(levelname)-8s | %(message)s"
+    "%(asctime)s | %(levelname)-2s | %(message)s"
 )  # Formate the loggers for better readability
 
 console_handler.setFormatter(formatter)

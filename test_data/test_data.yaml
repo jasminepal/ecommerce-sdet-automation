@@ -16,15 +16,26 @@ invalid_products:
     name: Laptop
     price: -500
     stock: 10
+    expected_status: 422
 
   - test_case: empty_name
     name: ""
     price: 50000
     stock: 10
+    expected_status: 422
 
   - test_case: negative_stock
     name: Laptop
     price: 50000
     stock: -10
+    expected_status: 422
 
 # Run it : python -m pytest -v -s tests/test_products.py
+# Different assertions / when to split tests
+# → Dependent test data - done 
+# → Cleanup / DB state - done
+# → Reusable assertions
+# → API client robustness
+# → Environment configuration
+# → Pytest markers/execution
+# → CI/CD

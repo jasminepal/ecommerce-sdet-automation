@@ -26,12 +26,8 @@ def test_create_product(api_client, product_data):
         
 
 
-def test_get_product_by_id(api_client, product_data):
-    created_product_response = api_client.post("/products", product_data)
-    logger.info(f"Status code: {created_product_response.status_code}")
-    logger.info(f"Product Created")
-    assert created_product_response.status_code == 201
-    product_id = created_product_response.json()["id"]
+def test_get_product_by_id(api_client, created_product):
+    product_id = created_product["id"]
     logger.info(f"Product id fetched")
     # print(f"product id {product_id}")
     
@@ -41,9 +37,9 @@ def test_get_product_by_id(api_client, product_data):
     # print(f" data {response_data}")
     
     assert response_data["id"] == product_id
-    assert response_data["name"] == created_product_response.json()["name"]
-    assert response_data["price"] == created_product_response.json()["price"]
-    assert response_data["stock"] == created_product_response.json()["stock"]
+    assert response_data["name"] == created_product["name"]
+    assert response_data["price"] == created_product["price"]
+    assert response_data["stock"] == created_product["stock"]
     
     
 
@@ -115,7 +111,10 @@ def test_delete_product_by_id(api_client, product_data):
 
 # negative TCs
 def test_create_product_with_invalid_data(api_client, invalid_product_data):
-    response = api_client.post(f"/products", invalid_product_data)
+    unwanted_keys = {'test_case', 'expected_status'}
+    required_data = {key: value for key, value in invalid_product_data.items() if key not in unwanted_keys}
+    logger.info(f"Required body: {required_data}")
+    response = api_client.post(f"/products", required_data)
     # response_data = response.json()
     
-    assert response.status_code == 422
+    assert response.status_code == invalid_product_data["expected_status"]
