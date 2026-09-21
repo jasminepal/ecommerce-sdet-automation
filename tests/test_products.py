@@ -1,5 +1,6 @@
 import random
 from framework.logger import logger
+from framework.assertions import assert_product_response
 
 
 def test_get_products(api_client):
@@ -19,10 +20,12 @@ def test_create_product(api_client, product_data):
     logger.info(f"Product Created")
     response_data = response.json()
     
-    assert "id" in response_data
-    assert response_data["name"] == product_data["name"]
-    assert response_data["price"] == product_data["price"]
-    assert response_data["stock"] == product_data["stock"]
+    assert_product_response(response_data, product_data)
+    
+    # assert "id" in response_data
+    # assert response_data["name"] == product_data["name"]
+    # assert response_data["price"] == product_data["price"]
+    # assert response_data["stock"] == product_data["stock"]
         
 
 
@@ -59,6 +62,7 @@ def test_update_product_by_id(api_client, product_data):
     response = api_client.put(f"/products/{product_id}", updated_product_data)
     response_data = response.json()
     
+    assert_product_response(response_data, updated_product_data)
     # print(f"created_product_response.json() is {created_product_response.json()} and response_data is {response_data}")
     assert response_data["id"] == product_id
     assert response_data != created_product_response.json()

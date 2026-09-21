@@ -3,6 +3,7 @@ from pathlib import Path
 from framework.api_client import APIClient
 from framework.data_reader import DataReader
 from framework.logger import logger
+from framework.assertions import assert_product_response
 
 # Responsible for dealing with the APi URL/requests
 @pytest.fixture
@@ -16,7 +17,7 @@ TEST_DATA_FILE = PROJECT_ROOT / "test_data" / "test_data.yaml"
 
 # Responsible for CRUD with test data file
 reader = DataReader(TEST_DATA_FILE)
-test_data = reader.read_date()
+test_data = reader.read_data()
 # Get the list of products
 products = test_data["products"]
 invalid_products = test_data["invalid_products"]
@@ -46,6 +47,7 @@ def created_product(api_client, product_data):
     logger.info(f"Product Created")
     assert response.status_code == 201
     created_product_data = response.json()
+    assert_product_response(created_product_data, product_data)
     
     yield created_product_data
     
