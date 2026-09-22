@@ -1,8 +1,10 @@
 import random
+import pytest
 from framework.logger import logger
 from framework.assertions import assert_product_response
 
 
+@pytest.mark.positive
 def test_get_products(api_client):
     response = api_client.get("/products")
     # print(f"Response body: {response.json()}")
@@ -12,6 +14,7 @@ def test_get_products(api_client):
     
 
 
+@pytest.mark.positive
 def test_create_product(api_client, product_data):
     # product_data = test_data["products"]["valid_product"]
 
@@ -29,6 +32,7 @@ def test_create_product(api_client, product_data):
         
 
 
+@pytest.mark.positive
 def test_get_product_by_id(api_client, created_product):
     product_id = created_product["id"]
     logger.info(f"Product id fetched")
@@ -46,6 +50,7 @@ def test_get_product_by_id(api_client, created_product):
     
     
 
+@pytest.mark.positive
 def test_update_product_by_id(api_client, product_data):
     created_product_response = api_client.post("/products", product_data)
     logger.info(f"Status code: {created_product_response.status_code}")
@@ -69,6 +74,7 @@ def test_update_product_by_id(api_client, product_data):
     
     
 
+@pytest.mark.positive
 def test_patch_product_by_id(api_client, product_data):
     created_product_response = api_client.post("/products", product_data)
     logger.info(f"Status code: {created_product_response.status_code}")
@@ -94,7 +100,8 @@ def test_patch_product_by_id(api_client, product_data):
     assert response_data[random_key] == body[random_key]
     
     
-    
+
+@pytest.mark.positive
 def test_delete_product_by_id(api_client, product_data):
     created_product_response = api_client.post("/products", product_data)
     logger.info(f"Status code: {created_product_response.status_code}")
@@ -114,6 +121,7 @@ def test_delete_product_by_id(api_client, product_data):
 
 
 # negative TCs
+@pytest.mark.negative
 def test_create_product_with_invalid_data(api_client, invalid_product_data):
     unwanted_keys = {'test_case', 'expected_status'}
     required_data = {key: value for key, value in invalid_product_data.items() if key not in unwanted_keys}
