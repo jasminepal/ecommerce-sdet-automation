@@ -29,21 +29,4 @@ invalid_products:
     price: 50000
     stock: -10
     expected_status: 422
-
-# Run it : 
-# 1. python -m pytest -v -s tests/test_products.py
-# 2. for running whole or everything : python -m pytest -v 
-# 3. for running with markers: python -m pytest -v -m marker_name
-# 4. for running the test script with report generation: python -m pytest -v --alluredir=allure-results  --> for running script and Save Allure test data in allure-results/
-#                                                     allure generate allure-results -o allure-report --> Build the actual report
-#                                                     allure open allure-report --> Open the report in server.
-# 5. Remove the current run data in allure-report and allure-results: rm -rf allure-results allure-report 
-# 6. Clean and run the tests directly: python -m pytest -v -m positive --clean-alluredir --alluredir=allure-results
-# Different assertions / when to split tests
-# → Dependent test data - done 
-# → Cleanup / DB state - done
-# → Reusable assertions
-# → API client robustness
-# → Environment configuration
-# → Pytest markers/execution
-# → CI/CD
+    
