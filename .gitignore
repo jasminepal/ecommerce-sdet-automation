@@ -16,3 +16,7 @@ backend/ecommerce.db
 
 # log file
 logs/
+
+# Allure reports
+allure-results/
+allure-report/
