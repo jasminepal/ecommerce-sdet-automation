@@ -1,15 +1,16 @@
 # E-Commerce API Automation Framework
 
-An API automation framework built with **Python, Pytest, Requests, FastAPI, SQLAlchemy, YAML test data, logging, and Allure reporting**.
+An API automation framework built using **Python, Pytest, Requests, FastAPI, SQLAlchemy, YAML test data, logging, and Allure reporting**.
 
-This project contains both:
+This repository contains:
 
-* A sample **E-Commerce REST API** built using FastAPI
-* An **API automation framework** used to test that API
-
-> **New to this project?**
-> Start with this `README.md` for setup and execution.
-> For the complete step-by-step explanation of how this project was built and why each component was added, see [`PROJECT_SETUP_GUIDE.md`](PROJECT_SETUP_GUIDE.md).
+* A sample **E-Commerce REST API** built with FastAPI
+* An **API automation framework** used to test the API
+* Positive and negative API test scenarios
+* YAML-based test data
+* Reusable API client and assertion utilities
+* Logging
+* Allure test reporting
 
 ---
 
@@ -52,13 +53,12 @@ ecommerce-sdet-project/
 ├── pytest.ini
 ├── requirements.txt
 ├── run_tests.sh
-├── PROJECT_SETUP_GUIDE.md
 └── README.md
 ```
 
-### Generated / local folders
+### Generated / local files
 
-The following folders are generated while running the project and are not required to be committed to Git:
+The following are created locally while working with the project:
 
 ```text
 backend/.venv/
@@ -68,23 +68,23 @@ allure-results/
 allure-report/
 ```
 
-They are ignored through `.gitignore`.
+They are ignored through `.gitignore` and do not need to be committed to Git.
 
 ---
 
-# 2. Folder & File Explanation
+# 2. Folder and File Explanation
 
 ## `backend/`
 
-Contains the FastAPI application that acts as the API under test.
+Contains the FastAPI application that acts as the **API under test**.
 
-This API is intentionally part of the repository so the automation framework has a complete API to test locally.
+The API is included in the same repository so that the automation framework can be run locally without depending on an external API.
 
 ### `backend/main.py`
 
 The main FastAPI application.
 
-It contains the API endpoints for products, including:
+It contains the product API endpoints:
 
 * Create Product
 * Get All Products
@@ -93,13 +93,13 @@ It contains the API endpoints for products, including:
 * Patch Product
 * Delete Product
 
-It also contains request/response validation using Pydantic.
+It also contains request validation using Pydantic.
 
 ---
 
 ### `backend/app/`
 
-Contains the database-related application components.
+Contains the database-related components of the API.
 
 #### `database.py`
 
@@ -115,7 +115,7 @@ The project currently uses SQLite.
 
 Contains the SQLAlchemy database models.
 
-The current project has a `Product` model with:
+The current `Product` model contains:
 
 ```text
 id
@@ -126,7 +126,7 @@ stock
 
 #### `__init__.py`
 
-Marks `app` as a Python package.
+Marks the `app` directory as a Python package.
 
 ---
 
@@ -138,9 +138,9 @@ The purpose of this folder is to keep reusable framework logic separate from ind
 
 ### `api_client.py`
 
-Central API client.
+Central API client used by the tests.
 
-Instead of writing `requests.get()`, `requests.post()`, etc. directly inside every test, the tests use:
+Instead of writing `requests.get()`, `requests.post()`, etc. directly inside every test, tests use:
 
 ```python
 api_client.get()
@@ -152,13 +152,11 @@ api_client.delete()
 
 It also handles:
 
-* Base URL usage
+* Base URL
 * Request timeout
 * API requests
 * Allure request attachments
 * Allure response attachments
-
-This keeps API communication centralized.
 
 ---
 
@@ -179,31 +177,29 @@ Environment-specific configuration can be introduced later when the API is deplo
 
 ### `data_reader.py`
 
-Responsible for reading test data from YAML files.
+Reads test data from YAML files.
 
-This keeps test data outside the test scripts.
+This keeps test data separate from the test implementation.
 
 ---
 
 ### `assertions.py`
 
-Contains reusable validation functions.
+Contains reusable response validation functions.
 
-For example, product response validation is centralized here instead of repeating the same assertions throughout multiple tests.
+For example, common product response validations are kept here instead of being repeated across multiple tests.
 
 ---
 
 ### `logger.py`
 
-Contains the project logging configuration.
+Contains the project's logging configuration.
 
-Logs are written to:
+Logs are displayed in the terminal and written to:
 
 ```text
 logs/test.log
 ```
-
-and are also displayed in the terminal while tests run.
 
 ---
 
@@ -226,11 +222,11 @@ Keeping test data separate makes it easier to add or modify test scenarios witho
 
 ## `tests/`
 
-Contains the actual automated test cases.
+Contains the actual API automation test cases.
 
 ### `conftest.py`
 
-Contains Pytest fixtures used by the tests.
+Contains reusable Pytest fixtures.
 
 Examples include:
 
@@ -239,15 +235,13 @@ Examples include:
 * Product creation fixture
 * Invalid product data fixture
 
-This allows common setup and data handling to be reused across tests.
+Fixtures allow common setup and test data handling to be reused across tests.
 
 ---
 
 ### `test_products.py`
 
 Contains the product API test cases.
-
-Current coverage includes:
 
 ### Positive scenarios
 
@@ -268,40 +262,41 @@ Current coverage includes:
 
 ## `pytest.ini`
 
-Contains Pytest configuration.
+Contains Pytest configuration and project markers.
 
-It also defines project markers such as:
+Current markers include:
 
 ```text
 positive
 negative
 ```
 
-This allows tests to be executed selectively.
+These markers allow tests to be executed selectively.
 
 ---
 
 ## `requirements.txt`
 
-Contains the Python dependencies required by the project.
+Contains the Python dependencies required by the entire project.
 
-There is **one requirements file for the entire project**.
+There is **one requirements file** for both:
 
-Install it using:
+* FastAPI backend
+* API automation framework
+
+Install all Python dependencies with:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-The file contains both backend and automation dependencies.
-
 ---
 
 ## `run_tests.sh`
 
-A convenience script for running the automation suite and generating an Allure report.
+A shell script that simplifies test execution and Allure report generation.
 
-Examples:
+It can run:
 
 ```bash
 ./run_tests.sh all
@@ -319,94 +314,132 @@ The script:
 
 1. Runs Pytest
 2. Generates Allure results
-3. Generates the Allure report
+3. Generates the Allure HTML report
 4. Opens the Allure report
-
----
-
-## `PROJECT_SETUP_GUIDE.md`
-
-Contains the detailed project-building documentation.
-
-It explains the project from the beginning, including:
-
-* Project creation
-* FastAPI setup
-* Database setup
-* Framework creation
-* Test data
-* Fixtures
-* API client
-* Logging
-* Assertions
-* Allure
-* Git/GitHub setup
-* Commands used during development
-* Why each component was introduced
-
-Use this file when you want to understand **how and why the project was built** rather than simply running it.
 
 ---
 
 # 3. Prerequisites
 
-The current project setup is intended for **macOS**.
+The current setup is documented for **macOS**.
 
-Install/check the following before starting:
+Before cloning and running the project, make sure the following are available.
 
-### Python
+## 3.1 Python
 
-Check:
+Check your Python version:
 
 ```bash
 python3 --version
 ```
 
-The project was developed and tested with Python 3.14.x.
+The project was developed and tested with Python **3.14.x**.
 
 ---
 
-### Git
+## 3.2 Git
 
-Check:
+Check Git:
 
 ```bash
 git --version
 ```
 
----
-
-### Allure
-
-Check:
+If Git is not installed, install Apple's Command Line Tools:
 
 ```bash
-allure --version
-```
-
-If Allure is not installed:
-
-```bash
-brew install allure
+xcode-select --install
 ```
 
 ---
 
-### Java
+## 3.3 Homebrew
+
+Homebrew is used to install Allure and Java.
+
+Check whether Homebrew is installed:
+
+```bash
+brew --version
+```
+
+If it is not installed, install Homebrew from the official Homebrew website.
+
+After installation, verify:
+
+```bash
+brew --version
+```
+
+---
+
+# 4. Install Java for Allure
 
 Allure CLI requires Java.
 
-Check:
+Check whether Java is already installed:
 
 ```bash
 java -version
 ```
 
-You do not need to write Java code. Java is required by the Allure command-line application.
+If Java is not installed, install it using Homebrew:
+
+```bash
+brew install openjdk
+```
+
+After installation, run:
+
+```bash
+java -version
+```
+
+If Homebrew displays a command that needs to be added to your shell `PATH`, follow the command shown by Homebrew and then run:
+
+```bash
+java -version
+```
+
+You should now see the installed Java version.
+
+> You do not need to write Java code for this project. Java is required because the Allure command-line application runs on Java.
 
 ---
 
-# 4. Clone the Project
+# 5. Install Allure CLI
+
+Allure has two separate components in this project:
+
+### `allure-pytest`
+
+This is a Python package and is installed from:
+
+```text
+requirements.txt
+```
+
+### Allure CLI
+
+This is the command-line application used to generate and open the HTML report.
+
+Install it separately using Homebrew:
+
+```bash
+brew install allure
+```
+
+Verify the installation:
+
+```bash
+allure --version
+```
+
+You should see an Allure version printed in the terminal.
+
+---
+
+# 6. Clone the Repository
 
 Clone the repository:
 
@@ -414,27 +447,52 @@ Clone the repository:
 git clone git@github.com:jasminepal/ecommerce-sdet-automation.git
 ```
 
-Move into the project:
+Move into the cloned repository:
 
 ```bash
-cd ecommerce-sdet-project
+cd ecommerce-sdet-automation
 ```
 
-> If you cloned the repository using a different URL or GitHub account, use the corresponding clone URL.
+You should now be inside the project root.
+
+Verify:
+
+```bash
+pwd
+```
+
+You should see the path ending with:
+
+```text
+ecommerce-sdet-automation
+```
 
 ---
 
-# 5. Create the Python Virtual Environment
+# 7. Create the Python Virtual Environment
 
-The project currently keeps the virtual environment inside the `backend` folder.
+The project currently keeps its virtual environment inside the `backend` directory.
 
-Create it from the project root:
+From the **project root**, create the environment:
 
 ```bash
 python3 -m venv backend/.venv
 ```
 
-Activate it:
+This creates:
+
+```text
+backend/
+└── .venv/
+```
+
+The virtual environment keeps the project's Python packages isolated from the system Python installation.
+
+---
+
+# 8. Activate the Virtual Environment
+
+From the project root:
 
 ```bash
 source backend/.venv/bin/activate
@@ -446,71 +504,97 @@ After activation, your terminal should show something similar to:
 (.venv)
 ```
 
+Verify that Python is coming from the project's virtual environment:
+
+```bash
+which python
+```
+
+It should point to something similar to:
+
+```text
+.../ecommerce-sdet-automation/backend/.venv/bin/python
+```
+
 ---
 
-# 6. Install Project Dependencies
+# 9. Install Python Dependencies
 
 Make sure the virtual environment is activated.
 
-Then run:
+Then install all project dependencies:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-This installs the dependencies required for both:
+This single command installs the dependencies required by both the backend and automation framework.
 
-* FastAPI backend
-* API automation framework
+You do **not** need a separate `backend/requirements.txt`.
 
+Verify Pytest:
+
+```bash
+pytest --version
+```
+
+Verify Allure's Python plugin:
+
+```bash
+python -m pip show allure-pytest
+```
+
+Allure CLI was installed separately in the previous step, so verify that as well:
+
+```bash
+allure --version
+```
 
 ---
 
-# 7. Start the API
+# 10. Start the FastAPI Application
 
-The automation tests require the FastAPI application to be running.
+The automation tests require the API to be running.
 
-Open **Terminal 1**.
+Use **Terminal 1** for the API.
 
-Go to the backend directory:
+From the project root:
 
 ```bash
 cd backend
 ```
 
-Activate the virtual environment if it is not already active:
+Activate the existing virtual environment:
 
 ```bash
 source .venv/bin/activate
 ```
 
-Start the API:
+Start the FastAPI application:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The API should start on:
+The API should start at:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-You should see something similar to:
+Keep this terminal running while executing the tests.
 
-```text
-Uvicorn running on http://127.0.0.1:8000
-```
+---
 
-### Verify the API
+# 11. Verify the API
 
-Open:
+Open the following URL in your browser:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-You should receive:
+Expected response:
 
 ```json
 {
@@ -518,41 +602,43 @@ You should receive:
 }
 ```
 
-You can also open the FastAPI Swagger documentation:
+You can also open the automatically generated FastAPI Swagger documentation:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-Keep this terminal running while executing the automation tests.
+The Swagger page allows you to manually inspect and execute the available API endpoints.
 
 ---
 
-# 8. Run Automation Tests
+# 12. Run the Tests Without `run_tests.sh`
 
-Open **Terminal 2**.
+Use **Terminal 2** for automation.
 
 Go back to the project root:
 
 ```bash
-cd ~/Desktop/API_Automation/ecommerce-sdet-project
+cd ~/Desktop/ecommerce-sdet-automation
 ```
 
-Activate the virtual environment:
+If you opened a new terminal, activate the environment:
 
 ```bash
 source backend/.venv/bin/activate
 ```
 
+> Replace the path above with the location where you cloned the repository if it is different.
+
 ---
 
-## Option 1 — Run all tests directly with Pytest
+## Run all tests
 
 ```bash
 python -m pytest -v
 ```
 
-This runs the complete test suite.
+This executes the complete test suite.
 
 ---
 
@@ -572,43 +658,81 @@ python -m pytest -v -m negative
 
 ---
 
-# 9. Run Tests With Allure Results
+# 13. Generate an Allure Report Manually
 
-To generate Allure results:
+If you want the Allure report, first run Pytest with Allure result generation enabled.
+
+## Step 1 — Run tests and generate Allure results
+
+Run all tests:
 
 ```bash
 python -m pytest -v --clean-alluredir --alluredir=allure-results
 ```
 
-This:
+For positive tests only:
 
-* Runs the tests
-* Removes previous Allure result data
-* Creates fresh results inside `allure-results/`
+```bash
+python -m pytest -v -m positive --clean-alluredir --alluredir=allure-results
+```
 
-Then generate the HTML report:
+For negative tests only:
+
+```bash
+python -m pytest -v -m negative --clean-alluredir --alluredir=allure-results
+```
+
+The test results are stored in:
+
+```text
+allure-results/
+```
+
+---
+
+## Step 2 — Generate the HTML report
+
+Run:
 
 ```bash
 allure generate allure-results -o allure-report --clean
 ```
 
-Finally open the report:
+This creates:
+
+```text
+allure-report/
+```
+
+---
+
+## Step 3 — Open the report
+
+Run:
 
 ```bash
 allure open allure-report
 ```
 
+Allure will open the generated report in your browser.
+
 ---
 
-# 10. Run Tests Using `run_tests.sh`
+# 14. Run Tests Using `run_tests.sh`
 
-The project also provides a shell script to simplify the complete process.
+`run_tests.sh` is a convenience script that combines the Pytest and Allure commands.
 
-Before using it for the first time, make it executable:
+The API must already be running in **Terminal 1**.
+
+From the project root, make the script executable:
 
 ```bash
 chmod +x run_tests.sh
 ```
+
+You only need to do this once unless the file permissions are reset.
+
+---
 
 ## Run all tests
 
@@ -616,11 +740,27 @@ chmod +x run_tests.sh
 ./run_tests.sh all
 ```
 
+This runs:
+
+```text
+All tests
+    ↓
+Allure results
+    ↓
+Allure HTML report
+    ↓
+Open report
+```
+
+---
+
 ## Run positive tests
 
 ```bash
 ./run_tests.sh positive
 ```
+
+---
 
 ## Run negative tests
 
@@ -628,95 +768,102 @@ chmod +x run_tests.sh
 ./run_tests.sh negative
 ```
 
-The script automatically:
+---
 
-```text
-Run Pytest
-     ↓
-Generate Allure results
-     ↓
-Generate Allure HTML report
-     ↓
-Open Allure report
+# 15. What `run_tests.sh` Does
+
+The script accepts one argument.
+
+### `all`
+
+```bash
+./run_tests.sh all
 ```
 
-The API must already be running in another terminal.
+Runs the complete test suite.
+
+### `positive`
+
+```bash
+./run_tests.sh positive
+```
+
+Runs tests marked:
+
+```python
+@pytest.mark.positive
+```
+
+### `negative`
+
+```bash
+./run_tests.sh negative
+```
+
+Runs tests marked:
+
+```python
+@pytest.mark.negative
+```
+
+After running Pytest, the script automatically:
+
+1. Cleans previous Allure results
+2. Executes the tests
+3. Generates new Allure results
+4. Generates the Allure HTML report
+5. Opens the report
 
 ---
 
-# 11. Running Without `run_tests.sh`
+# 16. Typical Two-Terminal Workflow
 
-The script is only a convenience.
+The easiest way to work with this project is to use two terminals.
 
-Everything can also be executed manually.
+## Terminal 1 — Start the API
 
-### All tests
-
-```bash
-python -m pytest -v --clean-alluredir --alluredir=allure-results
-```
-
-### Positive tests
+From the project root:
 
 ```bash
-python -m pytest -v -m positive --clean-alluredir --alluredir=allure-results
-```
-
-### Negative tests
-
-```bash
-python -m pytest -v -m negative --clean-alluredir --alluredir=allure-results
-```
-
-Then:
-
-```bash
-allure generate allure-results -o allure-report --clean
-```
-
-And:
-
-```bash
-allure open allure-report
-```
-
----
-
-# 12. Typical Terminal Setup
-
-For normal development, use two terminals.
-
-### Terminal 1 — API
-
-```bash
-cd ~/Desktop/API_Automation/ecommerce-sdet-project/backend
+cd backend
 source .venv/bin/activate
 uvicorn main:app --reload
 ```
 
-Keep this running.
+Leave this terminal running.
 
-### Terminal 2 — Automation
+---
+
+## Terminal 2 — Run automation
+
+From the project root:
 
 ```bash
-cd ~/Desktop/API_Automation/ecommerce-sdet-project
 source backend/.venv/bin/activate
 ./run_tests.sh all
 ```
 
+The tests will send requests to:
+
+```text
+http://127.0.0.1:8000
+```
+
+which is the FastAPI application running in Terminal 1.
+
 ---
 
-# 13. Troubleshooting
+# 17. Troubleshooting
 
 ## `ModuleNotFoundError`
 
-Make sure the virtual environment is activated:
+First make sure the virtual environment is activated:
 
 ```bash
 source backend/.venv/bin/activate
 ```
 
-Then verify Python:
+Check Python:
 
 ```bash
 which python
@@ -728,7 +875,7 @@ It should point to:
 .../backend/.venv/bin/python
 ```
 
-If dependencies have not been installed:
+Then install dependencies again:
 
 ```bash
 python -m pip install -r requirements.txt
@@ -736,13 +883,15 @@ python -m pip install -r requirements.txt
 
 ---
 
-## Connection refused / API connection error
+## `Connection refused`
 
-Make sure the FastAPI server is running.
+The API is probably not running.
 
-Start it from the `backend` directory:
+Open Terminal 1 and start:
 
 ```bash
+cd backend
+source .venv/bin/activate
 uvicorn main:app --reload
 ```
 
@@ -756,7 +905,9 @@ http://127.0.0.1:8000
 
 ## `allure: command not found`
 
-Install Allure:
+Allure CLI is not installed or is not available in your `PATH`.
+
+Install it:
 
 ```bash
 brew install allure
@@ -774,13 +925,23 @@ allure --version
 
 Allure requires Java.
 
-Verify:
+Check:
 
 ```bash
 java -version
 ```
 
-Install Java if required before using Allure.
+If Java is not installed:
+
+```bash
+brew install openjdk
+```
+
+Follow any `PATH` instructions printed by Homebrew, then verify:
+
+```bash
+java -version
+```
 
 ---
 
@@ -792,7 +953,7 @@ Make the script executable:
 chmod +x run_tests.sh
 ```
 
-Then:
+Then run:
 
 ```bash
 ./run_tests.sh all
@@ -800,19 +961,70 @@ Then:
 
 ---
 
-# 14. Quick Start
+## Tests cannot find the test data
 
-For someone who just wants to get the project running:
+Make sure you are running Pytest from the **project root**, not from inside the `tests` directory.
+
+Correct:
+
+```text
+ecommerce-sdet-automation/
+```
+
+Then:
+
+```bash
+python -m pytest -v
+```
+
+---
+
+# 18. Quick Start
+
+For a user who wants the shortest complete setup path:
+
+### 1. Clone
 
 ```bash
 git clone git@github.com:jasminepal/ecommerce-sdet-automation.git
-cd ecommerce-sdet-project
+cd ecommerce-sdet-automation
+```
+
+### 2. Install/check Allure prerequisites
+
+```bash
+java -version
+allure --version
+```
+
+If missing:
+
+```bash
+brew install openjdk
+brew install allure
+```
+
+### 3. Create the Python environment
+
+```bash
 python3 -m venv backend/.venv
+```
+
+### 4. Activate it
+
+```bash
 source backend/.venv/bin/activate
+```
+
+### 5. Install Python dependencies
+
+```bash
 python -m pip install -r requirements.txt
 ```
 
-### Terminal 1
+### 6. Start the API
+
+In **Terminal 1**:
 
 ```bash
 cd backend
@@ -820,18 +1032,20 @@ source .venv/bin/activate
 uvicorn main:app --reload
 ```
 
-### Terminal 2
+### 7. Run automation
+
+In **Terminal 2**, from the project root:
 
 ```bash
 source backend/.venv/bin/activate
+chmod +x run_tests.sh
 ./run_tests.sh all
 ```
 
-That's enough to get the API running, execute the complete automation suite, and open the Allure report.
+The API will run locally, the automation suite will execute, and the Allure report will be generated and opened automatically.
 
----
 
-# 15. Project Documentation
+# 19. Project Detailed Documentation
 
 For the complete explanation of how this project was created and the reasoning behind each implementation:
 
