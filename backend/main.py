@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, status, Depends
 from pydantic import BaseModel, Field
 from app.database import get_db
-from app.models import Product
+from app.models import Product, Category
 from sqlalchemy.orm import Session
 
 app = FastAPI()
@@ -23,6 +23,25 @@ class ProductUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1)
     price: float | None = Field(default=None, gt=0)
     stock: int | None = Field(default=None, ge=0)
+    
+
+
+
+class CategoryCreate(BaseModel):
+    name: str = Field(min_length=1)
+    description: str | None = None
+
+
+class CategoryResponse(BaseModel):
+    id: int 
+    name: str
+    description: str | None 
+
+
+class CategoryUpdate(BaseModel):
+    name: str = Field(min_length=1)
+    description: str | None = None
+
 
 
 @app.get("/")
@@ -39,8 +58,6 @@ def get_products(db: Session = Depends(get_db)):
           response_model=ProductResponse, 
           status_code=status.HTTP_201_CREATED
           )
-
-
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     new_product = Product(
         name=product.name,
@@ -78,7 +95,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.delete(product)
     db.commit()
     
-    return {"message": "Product deleted successfully"} 
+    return {"message": "Product Deleted Successfully"} 
 
 
 @app.put("/products/{product_id}", response_model=ProductResponse)
@@ -92,7 +109,7 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
     if existing_product is None:
         raise HTTPException(
             status_code=404,
-            detail="Product not found"
+            detail="Product Not Found"
         )
         
     existing_product.name = product.name
@@ -136,3 +153,109 @@ def update_product_partial(
     db.refresh(existing_product)
 
     return existing_product
+
+
+## Category APIs
+@app.get("/categories", response_model=list[CategoryResponse])
+def get_categories(db: Session = Depends(get_db)):
+    return db.query(Category).all()
+
+
+@app.post("/categories", 
+          response_model=CategoryResponse,
+          status_code=status.HTTP_201_CREATED
+          )
+def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+    existing_category = db.query(Category).filter(Category.name == category.name).first()
+    
+    if existing_category is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Category Already Exists"
+        )
+        
+    new_category = Category(
+        name = category.name,
+        description = category.description
+    )
+    
+    db.add(new_category)
+    db.commit()
+    db.refresh(new_category)
+    
+    return new_category
+
+
+@app.get("/categories/{category_id}", response_model=CategoryResponse)
+def get_category(category_id: int, db: Session = Depends(get_db)):
+    category = db.query(Category).filter(Category.id == category_id).first()
+    
+    if category is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Category Not Found"
+        )
+    
+    return category
+
+
+@app.delete("/categories/{category_id}")
+def delete_category(category_id: int, db: Session = Depends(get_db)):
+    category = db.query(Category).filter(Category.id == category_id).first()
+    
+    if category is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Category Not Found"
+        )
+    
+    db.delete(category)
+    db.commit()
+    
+    return {"message": "Category Deleted Successfully"}
+
+
+@app.put("/categories/{category_id}", response_model=CategoryResponse)
+def update_category(category_id: int, category: CategoryCreate, db: Session = Depends(get_db)):
+    
+    existing_category = (
+        db.query(Category)
+        .filter(Category.id == category_id)
+        .first()
+    )
+    
+    if existing_category is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Category Not Found"
+        )
+        
+    existing_category.name = category.name
+    existing_category.description = category.description
+
+    db.commit()
+    db.refresh(existing_category)
+
+    return existing_category
+
+
+@app.patch("/categories/{category_id}", response_model=CategoryResponse)
+def update_category_partial(category_id: int, category: CategoryUpdate, db: Session = Depends(get_db)):
+    existing_category = (db.query(Category).filter(Category.id == category_id).first())
+
+    if existing_category is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Category Not Found"
+        )
+
+    if category.name is not None:
+        existing_category.name = category.name
+
+    if category.description is not None:
+        existing_category.description = category.description
+
+    db.commit()
+    db.refresh(existing_category)
+
+    return existing_category

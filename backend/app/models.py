@@ -11,3 +11,10 @@ class Product(Base):
     name: Mapped[str]
     price: Mapped[float]
     stock: Mapped[int]
+    
+class Category(Base):
+    __tablename__ = "categories"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True)
+    description: Mapped[str | None] = mapped_column(nullable=True)
