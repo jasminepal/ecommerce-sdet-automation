@@ -31,15 +31,40 @@ def test_data():
     params=products, 
     ids = [product["name"] for product in products]
 )
-def product_data(request):
-    return request.param
+def product_data(request, category_data):
+    product = request.param.copy()
+    product["category_id"] = category_data["id"]
+    return product
+
+# Instead of manually assiging category id to products it will read the data from db and assign the categpry_id and execute other
+@pytest.fixture
+def category_data(api_client):
+    category_payload = {
+        "name": f"Automation Test Category",
+        "description": "Category created for automation testing"
+    }
+    response = api_client.post("/categories", category_payload)
+
+    assert response.status_code == 201
+
+    category = response.json()
+
+    yield category
+
+    delete_category_response = api_client.delete(
+        f"/categories/{category['id']}"
+    )
+
+    assert delete_category_response.status_code == 200
 
 @pytest.fixture(
     params=invalid_products,
     ids=[invalid_product["test_case"] for invalid_product in invalid_products]
 )
-def invalid_product_data(request):
-    return request.param
+def invalid_product_data(request, category_data):
+    product = request.param.copy()
+    product["category_id"] = category_data["id"]
+    return product
 
 @pytest.fixture
 def created_product(api_client, product_data):

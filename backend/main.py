@@ -10,6 +10,7 @@ class ProductCreate(BaseModel):
     name: str = Field(min_length=1)
     price: float = Field(gt = 0)
     stock: int = Field(ge = 0)
+    category_id: int
     
     
 class ProductResponse(BaseModel):
@@ -17,12 +18,14 @@ class ProductResponse(BaseModel):
     name: str
     price: float
     stock: int
+    category_id: int
     
     
 class ProductUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1)
     price: float | None = Field(default=None, gt=0)
     stock: int | None = Field(default=None, ge=0)
+    category_id: int | None = None
     
 
 
@@ -59,10 +62,19 @@ def get_products(db: Session = Depends(get_db)):
           status_code=status.HTTP_201_CREATED
           )
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+    category = (db.query(Category).filter(Category.id == product.category_id).first())
+    
+    if category is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Category Not Found"
+        )
+    
     new_product = Product(
         name=product.name,
         price=product.price,
-        stock=product.stock
+        stock=product.stock,
+        category_id=product.category_id
     )
     db.add(new_product)
     db.commit()
@@ -112,9 +124,17 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
             detail="Product Not Found"
         )
         
+    category = (db.query(Category).filter(Category.id == product.category_id).first())
+    if category is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Category Not Found"
+        )
+        
     existing_product.name = product.name
     existing_product.price = product.price
     existing_product.stock = product.stock
+    existing_product.category_id = product.category_id
 
     db.commit()
     db.refresh(existing_product)
@@ -133,7 +153,6 @@ def update_product_partial(
 ):
 
     existing_product = (db.query(Product).filter(Product.id == product_id).first())
-
     if existing_product is None:
         raise HTTPException(
             status_code=404,
@@ -142,12 +161,19 @@ def update_product_partial(
 
     if product.name is not None:
         existing_product.name = product.name
-
     if product.price is not None:
         existing_product.price = product.price
-
     if product.stock is not None:
-        existing_product.stock = product.stock
+        existing_product.stock = product.stock 
+    if product.category_id is not None:
+        category = (db.query(Category).filter(Category.id == product.category_id).first())
+        if category is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Category Not Found"
+            )
+        if product.category_id is not None:
+            existing_product.category_id = product.category_id
 
     db.commit()
     db.refresh(existing_product)

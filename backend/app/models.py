@@ -1,4 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import ForeignKey
 
 
 class Base(DeclarativeBase):
@@ -11,6 +12,7 @@ class Product(Base):
     name: Mapped[str]
     price: Mapped[float]
     stock: Mapped[int]
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False)
     
 class Category(Base):
     __tablename__ = "categories"

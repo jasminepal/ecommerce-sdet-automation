@@ -2,7 +2,7 @@ import random
 import pytest
 import allure
 from framework.logger import logger
-from framework.assertions import assert_product_response
+from framework.assertions import (assert_product_response, get_mutable_product_fields)
 
 
 @pytest.mark.positive
@@ -80,7 +80,8 @@ def test_update_product_by_id(api_client, product_data):
         updated_product_data = {
             'name': f"Update {product_data['name']}", 
             'price': product_data['price'] + 1000, 
-            'stock': product_data['stock'] + 100
+            'stock': product_data['stock'] + 100,
+            'category_id': product_data['category_id']
         }
     
     with allure.step("Update Product"):
@@ -110,7 +111,8 @@ def test_patch_product_by_id(api_client, product_data):
         logger.info(f"Product id fetched")
     
     with allure.step("Prepare Patch Data"):
-        random_key = random.choice(list(product_data.keys()))
+        mutable_fields = get_mutable_product_fields(product_data)
+        random_key = random.choice(list(mutable_fields.keys()))
         random_value = product_data[random_key]
         body = {random_key: random_value}
         if isinstance(body[random_key], (int, float)):
@@ -154,7 +156,7 @@ def test_delete_product_by_id(api_client, product_data):
         print(response.text)
         assert response.status_code == 200
         response_data = response.json()
-        assert response_data["message"] == "Product deleted successfully"
+        assert response_data["message"] == "Product Deleted Successfully"
         
     
 
