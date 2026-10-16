@@ -1,10 +1,13 @@
 from fastapi import FastAPI, HTTPException, status, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from app.database import get_db
-from app.models import Product, Category
+from app.models import Product, Category, User
 from sqlalchemy.orm import Session
+from pwdlib import PasswordHash
 
 app = FastAPI()
+
+password_hash = PasswordHash.recommended()
 
 class ProductCreate(BaseModel):
     name: str = Field(min_length=1)
@@ -44,6 +47,27 @@ class CategoryResponse(BaseModel):
 class CategoryUpdate(BaseModel):
     name: str = Field(min_length=1)
     description: str | None = None
+
+
+
+class UserCreate(BaseModel):
+    name: str = Field(min_length=1)
+    email: EmailStr 
+    password: str = Field(min_length=8)
+    
+    
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    is_active: bool
+    
+
+class UserUpdate(BaseModel):
+    name: str | None = Field(min_length=1, default=None)
+    email: EmailStr | None = None
+    password: str | None = Field(default=None, min_length=8)
+    is_active: bool | None = None
 
 
 
@@ -285,3 +309,77 @@ def update_category_partial(category_id: int, category: CategoryUpdate, db: Sess
     db.refresh(existing_category)
 
     return existing_category
+
+
+## User APIs
+@app.post("/users", response_model=UserResponse, status_code=201)
+def  create_user(user: UserCreate, db: Session = Depends(get_db)):
+    existing_user = (db.query(User).filter(User.email == user.email).first())
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=409,
+            detail="User Already Registered")
+        
+    hashed_password = password_hash.hash(user.password)
+    
+    new_user = User(
+        name=user.name,
+        email=user.email,
+        password=hashed_password,
+        is_active=True
+    )
+
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return new_user
+
+
+@app.get("/users", response_model=list[UserResponse])
+def get_all_users(db: Session = Depends(get_db)):
+    return db.query(User).all()
+
+
+@app.get("/users/{user_id}", response_model=UserResponse)
+def get_all_user_by_id(user_id: int, db: Session = Depends(get_db)):
+    user = (db.query(User).filter(User.id == user_id).first())
+    
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User Not Found"
+        )
+        
+    return user
+
+
+@app.delete("/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    user = (db.query(User).filter(User.id == user_id).first())
+    
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User Not Found"
+        )
+        
+    db.delete(user)
+    db.commit()
+    
+    return {"message": "User Deleted Successfully"}
+
+
+# @app.put("/users/{user_id}")
+# def update_user(user_id: int, db: Session = Depends(get_db)):
+#     existing_user = (db.query(User).filter(User.id == user_id).first())
+    
+#     if existing_user is None:
+#         raise HTTPException(
+#             status_code=404,
+#             detail="User Not Found"
+#         )
+        
+#     user = (db.query(User).filter(User.id == user_id))
