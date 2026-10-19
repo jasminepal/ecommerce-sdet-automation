@@ -30,3 +30,11 @@ invalid_products:
     stock: -10
     expected_status: 422
     
+users:
+  - name: Jasmine
+    email: jasmine.automation@example.com
+    password: TestPassword123
+
+  - name: Alex
+    email: alex.automation@example.com
+    password: TestPassword456

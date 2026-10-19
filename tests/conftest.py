@@ -1,4 +1,5 @@
 import pytest 
+import uuid
 from pathlib import Path
 from framework.api_client import APIClient
 from framework.data_reader import DataReader
@@ -21,6 +22,10 @@ test_data = reader.read_data()
 # Get the list of products
 products = test_data["products"]
 invalid_products = test_data["invalid_products"]
+
+# Get the list of users
+users = test_data["users"]
+
 
 # Gives entire yaml
 @pytest.fixture
@@ -81,3 +86,30 @@ def created_product(api_client, product_data):
     assert delete_product_id_response.status_code == 200
     
     
+@pytest.fixture(
+    params=users,
+    ids=[user["name"] for user in users]
+)
+def user_data(request):
+    return request.param.copy()
+
+@pytest.fixture
+def created_user(api_client, user_data):
+    user_payload = user_data.copy()
+
+    # Use a unique email for each test run.
+    user_payload["email"] = (
+        f"{user_payload['email'].split('@')[0]}+"
+        f"{uuid.uuid4().hex[:8]}@"
+        f"{user_payload['email'].split('@')[1]}"
+    )
+
+    response = api_client.post("/users", user_payload)
+    assert response.status_code == 201, response.text
+
+    user = response.json()
+
+    yield user
+
+    delete_response = api_client.delete(f"/users/{user['id']}")
+    assert delete_response.status_code == 200, delete_response.text

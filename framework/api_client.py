@@ -10,8 +10,12 @@ class APIClient:
         url = f"{BASE_URL}{endpoint}"
         # allure request
         if data:
+            safe_data = data.copy()
+            if "password" in safe_data:
+                safe_data["password"] = "[REDACTED]"
+                
             allure.attach(
-                json.dumps(data, indent=4),
+                json.dumps(safe_data, indent=4),
                 name=f"{method} Request",
                 attachment_type=allure.attachment_type.JSON
             )
