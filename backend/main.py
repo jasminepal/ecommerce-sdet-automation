@@ -372,14 +372,57 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     return {"message": "User Deleted Successfully"}
 
 
-# @app.put("/users/{user_id}")
-# def update_user(user_id: int, db: Session = Depends(get_db)):
-#     existing_user = (db.query(User).filter(User.id == user_id).first())
+@app.put("/users/{user_id}")
+def update_user(user_id: int, user_data: UserCreate, db: Session = Depends(get_db)):
+    existing_user = (db.query(User).filter(User.id == user_id ).first())
+    duplicate_email = (db.query(User).filter(User.email == user_data.email, User.id != user_id).first())
     
-#     if existing_user is None:
-#         raise HTTPException(
-#             status_code=404,
-#             detail="User Not Found"
-#         )
+    if existing_user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User Not Found"
+        )
+    
+    if duplicate_email is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="User Already Registered"
+        )
         
-#     user = (db.query(User).filter(User.id == user_id))
+    existing_user.name = user_data.name
+    existing_user.email = user_data.email
+    existing_user.password = password_hash.hash(user_data.password)
+        
+    db.commit()
+    db.refresh(existing_user)
+
+    return existing_user
+
+
+@app.patch("/users/{user_id}", response_model = UserResponse)
+def patch_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db)):
+    existing_user = (db.query(User).filter(User.id == user_id).first())
+    
+    if existing_user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User Not Found"
+        )
+        
+    update_data = user_data.model_dump(exclude_unset=True)
+    if "email" in update_data:
+        duplicate_email = (db.query(User).filter(User.id != user_id, User.email == user_data["email"]).first())
+        
+        if duplicate_email is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Email Already Registered"
+            )
+            
+    if "password" in update_data:
+        update_data["password"] == password_hash.hash(update_data["password"])
+        
+    for field, value in update_data.items():
+        setattr(existing_user, field, value)
+        
+    
