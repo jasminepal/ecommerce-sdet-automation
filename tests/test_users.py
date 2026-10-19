@@ -5,6 +5,7 @@ import uuid
 from framework.logger import logger
 
 
+
 @pytest.mark.positive
 @allure.feature("User API")
 @allure.story("Create User")
@@ -19,30 +20,54 @@ def test_create_user(api_client, user_data):
         f"{user_payload['email'].split('@')[1]}"
     )
 
-    with allure.step("Send POST request to create a user"):
-        logger.info("Creating user with email: %s", user_payload["email"])
-        response = api_client.post("/users", user_payload)
+    created_user_id = None
 
-        logger.info(
-            "Create user response status: %s",
-            response.status_code
-        )
+    try:
+        with allure.step("Send POST request to create a user"):
+            logger.info("Creating user with email: %s", user_payload["email"])
+            response = api_client.post("/users", user_payload)
 
-    with allure.step("Verify the response status is 201"):
-        assert response.status_code == 201, (
-            f"Expected 201 Created, got {response.status_code}. "
-            f"Response: {response.text}"
-        )
+            logger.info(
+                "Create user response status: %s",
+                response.status_code
+            )
 
-    with allure.step("Validate the created user response"):
-        response_data = response.json()
+        with allure.step("Verify the response status is 201"):
+            assert response.status_code == 201, (
+                f"Expected 201 Created, got {response.status_code}. "
+                f"Response: {response.text}"
+            )
 
-        assert "id" in response_data
-        assert response_data["name"] == user_payload["name"]
-        assert response_data["email"] == user_payload["email"]
-        assert "password" not in response_data
+        with allure.step("Validate the created user response"):
+            response_data = response.json()
 
-        logger.info("User created successfully: ID %s", response_data["id"])
+            assert "id" in response_data
+            created_user_id = response_data["id"]
+
+            assert response_data["name"] == user_payload["name"]
+            assert response_data["email"] == user_payload["email"]
+            assert "password" not in response_data
+
+            logger.info(
+                "User created successfully: ID %s",
+                created_user_id
+            )
+
+    finally:
+        if created_user_id is not None:
+            with allure.step("Clean up the created user"):
+                delete_response = api_client.delete(
+                    f"/users/{created_user_id}"
+                )
+
+                assert delete_response.status_code == 200, (
+                    f"Failed to delete test user {created_user_id}. "
+                    f"Status: {delete_response.status_code}. "
+                    f"Response: {delete_response.text}"
+                )
+
+                logger.info("Cleaned up test user ID: %s", created_user_id)
+
 
 
 @pytest.mark.positive
