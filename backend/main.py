@@ -411,7 +411,7 @@ def patch_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db
         
     update_data = user_data.model_dump(exclude_unset=True)
     if "email" in update_data:
-        duplicate_email = (db.query(User).filter(User.id != user_id, User.email == user_data["email"]).first())
+        duplicate_email = (db.query(User).filter(User.id != user_id, User.email == update_data["email"]).first())
         
         if duplicate_email is not None:
             raise HTTPException(
@@ -425,4 +425,7 @@ def patch_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db
     for field, value in update_data.items():
         setattr(existing_user, field, value)
         
+    db.commit()
+    db.refresh(existing_user)
     
+    return existing_user
