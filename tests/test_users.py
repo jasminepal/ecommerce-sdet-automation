@@ -144,3 +144,56 @@ def test_get_user_by_id(api_client, created_user):
         )
 
         logger.info("Successfully retrieved user ID: %s", user_id)
+
+
+
+@pytest.mark.negative
+@allure.feature("User API")
+@allure.story("Duplicate Email")
+@allure.title("Verify duplicate email registration is rejected")
+def test_create_user_with_duplicate_email(api_client, created_user):
+    duplicate_payload = {
+        "name": "Duplicate User",
+        "email": created_user["email"],
+        "password": "TestPassword789"
+    }
+
+    with allure.step("Attempt to register using an existing email"):
+        logger.info(
+            "Attempting duplicate registration for email: %s",
+            duplicate_payload["email"]
+        )
+        response = api_client.post("/users", duplicate_payload)
+
+    with allure.step("Verify the API rejects the duplicate email"):
+        assert response.status_code == 409, (
+            f"Expected 409 Conflict, got {response.status_code}. "
+            f"Response: {response.text}"
+        )
+
+        assert response.json()["detail"] == "User Already Registered"
+        logger.info("Duplicate email registration correctly rejected")
+        
+
+
+@pytest.mark.negative
+@allure.feature("User API")
+@allure.story("Invalid Email")
+@allure.title("Verify registration with an invalid email is rejected")
+def test_create_user_with_invalid_email(api_client, invalid_user_data):
+
+    with allure.step("Send registration request with invalid email"):
+        logger.info(
+            "Attempting registration with invalid email: %s",
+            invalid_user_data["email"]
+        )
+
+        response = api_client.post("/users", invalid_user_data)
+
+    with allure.step("Verify the API rejects the invalid email"):
+        assert response.status_code == 422, (
+            f"Expected 422 Unprocessable Entity, got "
+            f"{response.status_code}. Response: {response.text}"
+        )
+
+        logger.info("Invalid email correctly rejected")

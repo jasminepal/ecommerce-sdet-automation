@@ -25,6 +25,7 @@ invalid_products = test_data["invalid_products"]
 
 # Get the list of users
 users = test_data["users"]
+invalid_users = test_data["invalid_users"]
 
 
 # Gives entire yaml
@@ -113,3 +114,10 @@ def created_user(api_client, user_data):
 
     delete_response = api_client.delete(f"/users/{user['id']}")
     assert delete_response.status_code == 200, delete_response.text
+    
+@pytest.fixture(
+    params=invalid_users,
+    ids=[user["test_case"] for user in invalid_users]
+)
+def invalid_user_data(request):
+    return request.param.copy()

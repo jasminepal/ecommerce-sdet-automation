@@ -38,3 +38,9 @@ users:
   - name: Alex
     email: alex.automation@example.com
     password: TestPassword456
+
+invalid_users:
+- test_case: Invalid Email
+  name: Jasmine
+  email: jasmine-email
+  password: TestPassword123
