@@ -3,11 +3,18 @@ from pydantic import BaseModel, Field, EmailStr
 from app.database import get_db
 from app.models import Product, Category, User
 from sqlalchemy.orm import Session
-from pwdlib import PasswordHash
+from app.security import (
+    password_hash,
+    verify_password,
+    create_access_token,
+    decode_access_token
+)
+import jwt
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 app = FastAPI()
 
-password_hash = PasswordHash.recommended()
+bearer_scheme = HTTPBearer(auto_error=False)
 
 class ProductCreate(BaseModel):
     name: str = Field(min_length=1)
@@ -54,8 +61,13 @@ class UserCreate(BaseModel):
     name: str = Field(min_length=1)
     email: EmailStr 
     password: str = Field(min_length=8)
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
     
-    
+
 class UserResponse(BaseModel):
     id: int
     name: str
@@ -69,6 +81,42 @@ class UserUpdate(BaseModel):
     password: str | None = Field(default=None, min_length=8)
     is_active: bool | None = None
 
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    token = credentials.credentials
+
+    try:
+        payload = decode_access_token(token)
+        user_id = int(payload["sub"])
+
+    except (jwt.InvalidTokenError, KeyError, TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    return user
 
 
 @app.get("/")
@@ -343,6 +391,11 @@ def get_all_users(db: Session = Depends(get_db)):
     return db.query(User).all()
 
 
+@app.get("/users/me", response_model=UserResponse)
+def get_my_profile(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
 @app.get("/users/{user_id}", response_model=UserResponse)
 def get_all_user_by_id(user_id: int, db: Session = Depends(get_db)):
     user = (db.query(User).filter(User.id == user_id).first())
@@ -420,7 +473,7 @@ def patch_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db
             )
             
     if "password" in update_data:
-        update_data["password"] == password_hash.hash(update_data["password"])
+        update_data["password"] = password_hash.hash(update_data["password"])
         
     for field, value in update_data.items():
         setattr(existing_user, field, value)
@@ -429,3 +482,42 @@ def patch_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db
     db.refresh(existing_user)
     
     return existing_user
+
+
+## Auth APIs
+@app.post("/auth/login")
+def login(user_data: UserLogin, db: Session = Depends(get_db)):
+
+    # Find the user using the submitted email
+    user = db.query(User).filter(User.email == user_data.email).first()
+
+    # Reject the login if the user does not exist
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    # Reject inactive accounts
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is inactive"
+        )
+
+    # Verify the submitted password against the stored hash
+    if not verify_password(user_data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    # Generate an access token for the authenticated user
+    access_token = create_access_token(
+        data={"sub": str(user.id)}
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }

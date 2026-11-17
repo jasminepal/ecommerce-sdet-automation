@@ -20,3 +20,5 @@ logs/
 # Allure reports
 allure-results/
 allure-report/
+
+.env

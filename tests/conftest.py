@@ -33,6 +33,7 @@ invalid_users = test_data["invalid_users"]
 def test_data():
     return test_data
 
+
 @pytest.fixture(
     params=products, 
     ids = [product["name"] for product in products]
@@ -41,6 +42,7 @@ def product_data(request, category_data):
     product = request.param.copy()
     product["category_id"] = category_data["id"]
     return product
+
 
 # Instead of manually assiging category id to products it will read the data from db and assign the categpry_id and execute other
 @pytest.fixture
@@ -62,6 +64,7 @@ def category_data(api_client):
     )
 
     assert delete_category_response.status_code == 200
+
 
 @pytest.fixture(
     params=invalid_products,
@@ -114,7 +117,23 @@ def created_user(api_client, user_data):
 
     delete_response = api_client.delete(f"/users/{user['id']}")
     assert delete_response.status_code == 200, delete_response.text
+  
     
+@pytest.fixture
+def auth_token(api_client, created_user, user_data):
+
+    login_payload = {
+        "email": created_user["email"],
+        "password": user_data["password"]
+    }
+
+    response = api_client.post("/auth/login", login_payload)
+
+    assert response.status_code == 200, response.text
+
+    return response.json()["access_token"]    
+
+
 @pytest.fixture(
     params=invalid_users,
     ids=[user["test_case"] for user in invalid_users]
