@@ -1,1536 +1,143 @@
-# E-Commerce SDET API Automation — Complete Setup Guide
+# E-Commerce SDET API Automation — Framework Setup and Understanding Guide
 
-This document is a complete step-by-step guide for setting up and running the E-Commerce API Automation project from scratch.
+This guide explains the architecture, components, and execution flow of the E-Commerce API Automation project.
 
-It is intentionally written as an instruction guide rather than a traditional README.
+It is intended for someone who has already cloned and set up the repository using [`README.md`](README.md) and now wants to understand how the framework is designed and how its different components work together.
 
-The goal is that someone with little or no prior knowledge of this project should be able to follow this document and reproduce the same setup.
+The README answers:
 
-For a shorter overview of the project, refer to `README.md`.
+**"How do I set up and run this project?"**
+
+This guide answers:
+
+**"What have we built, why have we built it this way, and how does it work?"**
 
 ---
 
 # 1. Project Overview
 
-This project is an E-Commerce API Automation framework created for SDET automation practice.
+This project contains two main components:
 
-The project contains two main parts:
+1. A sample E-Commerce REST API built using FastAPI.
+2. An API automation framework built using Python, Pytest, and Requests.
 
-1. A simple E-Commerce REST API built using FastAPI.
-2. An API automation framework built using Python, Pytest and Requests.
+The FastAPI application acts as the **System Under Test (SUT)**. The automation framework sends HTTP requests to this application and validates its responses.
 
-The API provides Product CRUD operations, while the automation framework validates those APIs.
+The project also includes JWT authentication, a database layer, YAML-based test data, reusable framework utilities, logging, and Allure reporting.
 
-The current project covers:
+## 1.1 Technology stack
 
-* FastAPI
-* REST API
-* SQLite
-* SQLAlchemy
-* Pydantic validation
-* Python
-* Requests
-* Pytest
-* Pytest fixtures
-* Parameterization
-* YAML test data
-* Reusable API client
-* Reusable assertions
-* Logging
-* Pytest markers
-* Allure reporting
-* Bash test execution script
-* Git
-* GitHub
+| Area                          | Technologies                     |
+| ----------------------------- | -------------------------------- |
+| Programming language          | Python                           |
+| API development               | FastAPI, REST, Pydantic          |
+| Database                      | SQLite, SQLAlchemy               |
+| Database migrations           | Alembic                          |
+| Authentication                | JWT, password hashing            |
+| API communication             | Requests                         |
+| Test execution                | Pytest                           |
+| Test data                     | YAML                             |
+| Reusable framework components | API client, fixtures, assertions |
+| Logging                       | Python logging                   |
+| Reporting                     | Allure                           |
+| Version control               | Git, GitHub                      |
+| Test execution script         | Bash                             |
 
----
+## 1.2 Why include both an API and an automation framework?
 
-# 2. Prerequisites
+In a typical QA/SDET role, the automation engineer is often given an existing API to test.
 
-Before starting, make sure the following are installed.
+For this portfolio project, we have included a sample API in the same repository.
 
-* Python 3
-* Git
-* VS Code
-* Homebrew
-* Java
-* Allure CLI
+This gives us a complete local environment:
 
-## Check Python
+* The backend provides the API endpoints.
+* The database stores application data.
+* The automation framework sends requests to the API.
+* Pytest executes the test cases.
+* Assertions validate the responses.
+* Allure presents the execution results.
 
-Open Terminal and run:
-
-```bash
-python3 --version
-```
-
-## Check Git
-
-```bash
-git --version
-```
-
-## Check Homebrew
-
-```bash
-brew --version
-```
-
-## Check Java
-
-```bash
-java -version
-```
-
-Java is required because Allure CLI runs using Java internally.
-
-You do not need to write Java code for this project.
+The automation framework does not access the database directly to validate API responses. It communicates with the API through HTTP requests, just as an external API consumer would.
 
 ---
 
-# 3. Install Allure
+# 2. Understand the Project Architecture
 
-On macOS, Allure CLI can be installed using Homebrew:
+Before looking at individual files, understand how the major components interact.
 
-```bash
-brew install allure
+```text
+                 API AUTOMATION FRAMEWORK
+                            |
+                            v
+                       Pytest Tests
+                            |
+                            v
+                     Pytest Fixtures
+                            |
+                            v
+                       API Client
+                            |
+                            v
+                         Requests
+                            |
+                            v
+                    FASTAPI APPLICATION
+                            |
+               +------------+------------+
+               |                         |
+               v                         v
+         Authentication             API Endpoints
+               |                         |
+               v                         v
+          JWT Security               SQLAlchemy
+                                         |
+                                         v
+                                     SQLite DB
+
+       YAML Test Data ---> Fixtures ---> Pytest Tests
+
+       Pytest ---> Assertions ---> Logging ---> Allure Report
 ```
 
-Verify the installation:
+### What happens during execution?
 
-```bash
-allure --version
-```
+1. Pytest discovers the test cases.
+2. Pytest requests the fixtures required by each test.
+3. Fixtures provide test data, the API client, and other required setup.
+4. The test calls a method on the API client.
+5. The API client uses Requests to send an HTTP request.
+6. FastAPI receives the request and executes the appropriate endpoint.
+7. The backend performs validation, authentication, or database operations as required.
+8. FastAPI returns an HTTP response.
+9. The test validates the response using assertions.
+10. Logging and Allure capture useful execution information.
+
+The important separation is:
+
+**The backend handles application functionality. The framework handles API test execution and validation.**
 
 ---
 
-# 4. Create the Project
+# 3. Project Structure
 
-Open Terminal.
-
-Move to Desktop:
-
-```bash
-cd ~/Desktop
-```
-
-Create the main project folder:
-
-```bash
-mkdir API_Automation
-```
-
-Enter it:
-
-```bash
-cd API_Automation
-```
-
-Create the project:
-
-```bash
-mkdir ecommerce-sdet-project
-```
-
-Enter the project:
-
-```bash
-cd ecommerce-sdet-project
-```
-
-Verify the current location:
-
-```bash
-pwd
-```
-
-The terminal should now point to the `ecommerce-sdet-project` directory.
-
----
-
-# 5. Create the Backend
-
-Create the backend folder:
-
-```bash
-mkdir backend
-```
-
-Enter the backend folder:
-
-```bash
-cd backend
-```
-
-The backend will contain the FastAPI application.
-
----
-
-# 6. Create the Python Virtual Environment
-
-Create the virtual environment:
-
-```bash
-python3 -m venv .venv
-```
-
-The virtual environment keeps Python dependencies isolated for this project.
-
-Activate it on macOS:
-
-```bash
-source .venv/bin/activate
-```
-
-After activation, the terminal should normally show:
+The repository is organized into separate folders so that application code, framework utilities, test data, and test cases do not become mixed together.
 
 ```text
-(.venv)
-```
-
-Verify Python:
-
-```bash
-python --version
-```
-
-Verify pip:
-
-```bash
-python -m pip --version
-```
-
-## Important
-
-On macOS/Linux, use:
-
-```bash
-source .venv/bin/activate
-```
-
-Do not use the Windows activation command:
-
-```text
-.venv\Scripts\activate
-```
-
----
-
-# 7. Install Backend Dependencies
-
-Create:
-
-```text
-backend/requirements.txt
-```
-
-Add:
-
-```text
-fastapi
-uvicorn
-sqlalchemy
-```
-
-Install the dependencies:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
----
-
-# 8. Create the FastAPI Application
-
-Create:
-
-```text
-backend/main.py
-```
-
-The FastAPI application starts with:
-
-```python
-from fastapi import FastAPI
-
-app = FastAPI()
-
-
-@app.get("/")
-def root():
-    return {"message": "E-Commerce API is running"}
-```
-
-## What this does
-
-```python
-app = FastAPI()
-```
-
-Creates the FastAPI application.
-
-```python
-@app.get("/")
-```
-
-Creates a GET endpoint at `/`.
-
-The function returns:
-
-```json
-{
-    "message": "E-Commerce API is running"
-}
-```
-
----
-
-# 9. Run the FastAPI Application
-
-Make sure you are inside:
-
-```text
-backend/
-```
-
-Run:
-
-```bash
-uvicorn main:app --reload
-```
-
-## What does this command mean?
-
-```text
-uvicorn
-```
-
-Starts the ASGI server.
-
-```text
-main
-```
-
-Means `main.py`.
-
-```text
-app
-```
-
-Means the FastAPI object named `app`.
-
-```text
---reload
-```
-
-Automatically reloads the server when the application code changes.
-
-The API should now be available at:
-
-```text
-http://127.0.0.1:8000
-```
-
-Open the following in your browser:
-
-```text
-http://127.0.0.1:8000/
-```
-
-FastAPI also provides Swagger documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-OpenAPI specification:
-
-```text
-http://127.0.0.1:8000/openapi.json
-```
-
-Keep the Uvicorn terminal running while executing local API tests.
-
-To stop the server:
-
-```text
-Ctrl + C
-```
-
----
-
-# 10. Add Database Support
-
-The API uses SQLite as the database.
-
-Create this structure inside `backend`:
-
-```text
-backend/
-├── app/
-│   ├── __init__.py
-│   ├── database.py
-│   └── models.py
-├── main.py
-└── requirements.txt
-```
-
-Create the directory:
-
-```bash
-mkdir app
-```
-
-Create the files:
-
-```bash
-touch app/__init__.py
-touch app/database.py
-touch app/models.py
-```
-
----
-
-# 11. Create the Product Database Model
-
-Open:
-
-```text
-backend/app/models.py
-```
-
-Add:
-
-```python
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-class Product(Base):
-    __tablename__ = "products"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str]
-    price: Mapped[float]
-    stock: Mapped[int]
-```
-
-This creates the SQLAlchemy representation of the `products` table.
-
-The table contains:
-
-| Column | Type    |
-| ------ | ------- |
-| id     | Integer |
-| name   | String  |
-| price  | Float   |
-| stock  | Integer |
-
----
-
-# 12. Configure SQLite and SQLAlchemy
-
-Open:
-
-```text
-backend/app/database.py
-```
-
-Add:
-
-```python
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from .models import Base
-
-
-DATABASE_URL = "sqlite:///./ecommerce.db"
-
-
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
-
-
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
-
-
-Base.metadata.create_all(bind=engine)
-
-
-def get_db():
-    db = SessionLocal()
-
-    try:
-        yield db
-    finally:
-        db.close()
-```
-
-## What this does
-
-```python
-DATABASE_URL = "sqlite:///./ecommerce.db"
-```
-
-Tells SQLAlchemy to use a local SQLite database named:
-
-```text
-ecommerce.db
-```
-
-The database file is created inside `backend/`.
-
-```python
-engine
-```
-
-Creates the connection between the application and database.
-
-```python
-SessionLocal
-```
-
-Creates database sessions.
-
-```python
-Base.metadata.create_all(bind=engine)
-```
-
-Creates the database tables from the SQLAlchemy models.
-
-```python
-get_db()
-```
-
-Provides a database session to API endpoints and closes it after the request finishes.
-
----
-
-# 13. Add Pydantic Request and Response Models
-
-Open:
-
-```text
-backend/main.py
-```
-
-The API uses Pydantic models for request validation.
-
-```python
-from pydantic import BaseModel, Field
-```
-
-The models are:
-
-```python
-class ProductCreate(BaseModel):
-    name: str = Field(min_length=1)
-    price: float = Field(gt=0)
-    stock: int = Field(ge=0)
-
-
-class ProductResponse(BaseModel):
-    id: int
-    name: str
-    price: float
-    stock: int
-
-
-class ProductUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1)
-    price: float | None = Field(default=None, gt=0)
-    stock: int | None = Field(default=None, ge=0)
-```
-
-## Validation rules
-
-| Field | Validation                 |
-| ----- | -------------------------- |
-| name  | Minimum 1 character        |
-| price | Greater than 0             |
-| stock | Greater than or equal to 0 |
-
-`ProductCreate` is used when creating a product.
-
-`ProductUpdate` is used for partial updates.
-
-`ProductResponse` defines the expected product response.
-
----
-
-# 14. Create the CRUD APIs
-
-The API supports the following operations:
-
-| Method | Endpoint                 | Purpose                  |
-| ------ | ------------------------ | ------------------------ |
-| GET    | `/products`              | Get all products         |
-| POST   | `/products`              | Create product           |
-| GET    | `/products/{product_id}` | Get product by ID        |
-| PUT    | `/products/{product_id}` | Fully update product     |
-| PATCH  | `/products/{product_id}` | Partially update product |
-| DELETE | `/products/{product_id}` | Delete product           |
-
----
-
-# 15. GET All Products
-
-The endpoint returns all products from the database.
-
-```python
-@app.get("/products", response_model=list[ProductResponse])
-def get_products(db: Session = Depends(get_db)):
-    return db.query(Product).all()
-```
-
-Expected status:
-
-```text
-200 OK
-```
-
----
-
-# 16. POST Create Product
-
-The POST endpoint creates a new product.
-
-```python
-@app.post(
-    "/products",
-    response_model=ProductResponse,
-    status_code=status.HTTP_201_CREATED
-)
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):
-    new_product = Product(
-        name=product.name,
-        price=product.price,
-        stock=product.stock
-    )
-
-    db.add(new_product)
-    db.commit()
-    db.refresh(new_product)
-
-    return new_product
-```
-
-Expected successful status:
-
-```text
-201 Created
-```
-
----
-
-# 17. GET Product By ID
-
-The GET-by-ID endpoint retrieves one product.
-
-The endpoint accepts:
-
-```text
-/products/{product_id}
-```
-
-For example:
-
-```text
-/products/5
-```
-
-If the product exists:
-
-```text
-200 OK
-```
-
-If the product does not exist:
-
-```text
-404
-```
-
----
-
-# 18. PUT Product
-
-PUT performs a complete update.
-
-Example request:
-
-```json
-{
-    "name": "Laptop",
-    "price": 55000,
-    "stock": 20
-}
-```
-
-PUT uses `ProductCreate`, so all required fields must be supplied.
-
-Expected successful status:
-
-```text
-200 OK
-```
-
----
-
-# 19. PATCH Product
-
-PATCH performs a partial update.
-
-For example:
-
-```json
-{
-    "price": 55000
-}
-```
-
-Only the supplied field is updated.
-
-Expected successful status:
-
-```text
-200 OK
-```
-
----
-
-# 20. DELETE Product
-
-DELETE removes a product from the database.
-
-Successful response:
-
-```json
-{
-    "message": "Product deleted successfully"
-}
-```
-
-Expected status:
-
-```text
-200 OK
-```
-
-If the product does not exist:
-
-```text
-404
-```
-
----
-
-# 21. Create the Automation Framework
-
-Return to the project root:
-
-```bash
-cd ..
-```
-
-Create the framework directories:
-
-```bash
-mkdir framework
-mkdir test_data
-mkdir tests
-```
-
-Create the framework package:
-
-```bash
-touch framework/__init__.py
-```
-
-The structure is now:
-
-```text
-ecommerce-sdet-project/
-├── backend/
-├── framework/
-│   └── __init__.py
-├── test_data/
-└── tests/
-```
-
----
-
-# 22. Install Automation Dependencies
-
-The virtual environment is inside:
-
-```text
-backend/.venv
-```
-
-From the project root, activate it:
-
-```bash
-source backend/.venv/bin/activate
-```
-
-Install the automation dependencies:
-
-```bash
-python -m pip install pytest requests PyYAML python-dotenv
-```
-
-Install Allure integration:
-
-```bash
-python -m pip install allure-pytest
-```
-
----
-
-# 23. Create Framework Configuration
-
-Create:
-
-```text
-framework/config.py
-```
-
-Use:
-
-```python
-BASE_URL = "http://127.0.0.1:8000"
-REQUEST_TIMEOUT = 10
-```
-
-`BASE_URL` is the base URL of the API.
-
-`REQUEST_TIMEOUT` prevents requests from waiting indefinitely.
-
-Environment configuration has intentionally not been added at this stage because the API is currently running locally.
-
-Once the API is deployed to environments such as QA or staging, environment configuration can be introduced.
-
----
-
-# 24. Create the API Client
-
-Create:
-
-```text
-framework/api_client.py
-```
-
-The API client centralizes HTTP communication.
-
-The architecture is:
-
-```text
-Test
-  ↓
-APIClient
-  ↓
-Requests
-  ↓
-FastAPI
-```
-
-Instead of writing `requests.get()`, `requests.post()`, etc. directly inside every test, the tests use:
-
-```python
-api_client.get(...)
-api_client.post(...)
-api_client.put(...)
-api_client.patch(...)
-api_client.delete(...)
-```
-
-All these methods internally use one `_request()` method.
-
-This keeps request handling in one place.
-
-The API client also handles Allure request/response attachments.
-
----
-
-# 25. Create the Test Data Reader
-
-Create:
-
-```text
-framework/data_reader.py
-```
-
-Use:
-
-```python
-import yaml
-
-
-class DataReader:
-
-    def __init__(self, file_path):
-        self.file_path = file_path
-
-    def read_data(self):
-        with open(self.file_path, "r") as file:
-            return yaml.safe_load(file)
-```
-
-This allows test data to remain outside the test code.
-
----
-
-# 26. Create YAML Test Data
-
-Create:
-
-```text
-test_data/test_data.yaml
-```
-
-Use:
-
-```yaml
-products:
-  - name: Laptop
-    price: 50000
-    stock: 10
-
-  - name: Mouse
-    price: 1000
-    stock: 20
-
-  - name: Keyboard
-    price: 2000
-    stock: 15
-
-invalid_products:
-  - test_case: invalid_price
-    name: Laptop
-    price: -500
-    stock: 10
-    expected_status: 422
-    expected_field: price
-
-  - test_case: empty_name
-    name: ""
-    price: 50000
-    stock: 10
-    expected_status: 422
-    expected_field: name
-
-  - test_case: negative_stock
-    name: Laptop
-    price: 50000
-    stock: -10
-    expected_status: 422
-    expected_field: stock
-```
-
-The YAML contains two groups:
-
-```text
-products
-invalid_products
-```
-
-The valid products are used for positive tests.
-
-The invalid products are used for negative tests.
-
----
-
-# 27. Understanding YAML Lists
-
-This:
-
-```yaml
-products:
-  - name: Laptop
-    price: 50000
-    stock: 10
-```
-
-means `products` contains a list.
-
-The `-` represents one item in the list.
-
-Therefore:
-
-```yaml
-products:
-  - Laptop
-  - Mouse
-  - Keyboard
-```
-
-represents three separate values.
-
----
-
-# 28. Create Reusable Assertions
-
-Create:
-
-```text
-framework/assertions.py
-```
-
-Use:
-
-```python
-def assert_product_response(response_data, expected_data):
-    assert "id" in response_data
-    assert response_data["name"] == expected_data["name"]
-    assert response_data["price"] == expected_data["price"]
-    assert response_data["stock"] == expected_data["stock"]
-```
-
-This prevents the same product assertions from being repeated in multiple tests.
-
-Instead of writing:
-
-```python
-assert "id" in response_data
-assert response_data["name"] == expected_data["name"]
-assert response_data["price"] == expected_data["price"]
-assert response_data["stock"] == expected_data["stock"]
-```
-
-in every test, we can simply use:
-
-```python
-assert_product_response(response_data, expected_data)
-```
-
----
-
-# 29. Create Logging
-
-Create:
-
-```text
-framework/logger.py
-```
-
-Use:
-
-```python
-import logging
-
-
-logger = logging.getLogger("ecommerce_sdet")
-logger.setLevel(logging.INFO)
-
-
-console_handler = logging.StreamHandler()
-
-
-formatter = logging.Formatter(
-    "%(asctime)s | %(levelname)-8s | %(message)s"
-)
-
-
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
-
-
-file_handler = logging.FileHandler("logs/test.log")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-```
-
-Create the logs directory from the project root:
-
-```bash
-mkdir logs
-```
-
-Logs are written to:
-
-```text
-logs/test.log
-```
-
-The logs directory should be ignored by Git.
-
----
-
-# 30. Create Pytest Configuration
-
-Create:
-
-```text
-pytest.ini
-```
-
-Use:
-
-```ini
-[pytest]
-
-markers =
-
-    positive: positive API test cases
-
-    negative: negative API test cases
-```
-
-This allows tests to be selected using markers.
-
-Positive:
-
-```bash
-python -m pytest -v -m positive
-```
-
-Negative:
-
-```bash
-python -m pytest -v -m negative
-```
-
----
-
-# 31. Create Pytest Fixtures
-
-Create:
-
-```text
-tests/conftest.py
-```
-
-The fixture file provides common setup and data to the tests.
-
-It contains fixtures for:
-
-* API client
-* test data
-* valid product data
-* invalid product data
-* created product
-
-The `created_product` fixture creates a product before a test and deletes it after the test.
-
-The important concept is `yield`.
-
-The flow is:
-
-```text
-Fixture setup
-     ↓
-yield
-     ↓
-Test executes
-     ↓
-Fixture resumes
-     ↓
-Teardown / cleanup
-```
-
-This allows temporary test data to be cleaned up after the test.
-
----
-
-# 32. Test Data Parameterization
-
-The valid product fixture uses:
-
-```python
-@pytest.fixture(
-    params=products,
-    ids=[product["name"] for product in products]
-)
-def product_data(request):
-    return request.param
-```
-
-Because the YAML contains:
-
-```text
-Laptop
-Mouse
-Keyboard
-```
-
-a test using `product_data` runs once for each product.
-
-For example:
-
-```text
-test_create_product[Laptop]
-test_create_product[Mouse]
-test_create_product[Keyboard]
-```
-
-The same concept is used for invalid product data.
-
----
-
-# 33. Create the Product Tests
-
-Create:
-
-```text
-tests/test_products.py
-```
-
-The test suite covers:
-
-### Positive test cases
-
-* Get all products
-* Create product
-* Get product by ID
-* Update product using PUT
-* Update product using PATCH
-* Delete product
-
-### Negative test case
-
-* Create product with invalid data
-
-The tests use:
-
-```python
-@pytest.mark.positive
-```
-
-and:
-
-```python
-@pytest.mark.negative
-```
-
-to classify the tests.
-
----
-
-# 34. Allure Steps
-
-Allure steps make the report easier to understand.
-
-For example:
-
-```python
-with allure.step("Create Product"):
-    response = api_client.post("/products", product_data)
-```
-
-Another step:
-
-```python
-with allure.step("Validate Product Response"):
-    response_data = response.json()
-    assert_product_response(response_data, product_data)
-```
-
-The report can therefore show the logical flow of a test.
-
-For example:
-
-```text
-Create Product
-Validate Product Response
-```
-
----
-
-# 35. Allure Attachments
-
-The API client centrally captures request and response information.
-
-Example:
-
-```python
-allure.attach(
-    json.dumps(data, indent=4),
-    name=f"{method} Request",
-    attachment_type=allure.attachment_type.JSON
-)
-```
-
-`allure.attach()` means:
-
-> Attach this information to the current test's Allure report.
-
-It does not:
-
-* send the API request
-* modify the API request
-* perform an assertion
-
-It only records information for reporting.
-
-Because this logic is inside `_request()`, every API method automatically gets request and response attachments.
-
-This avoids duplicating attachment code in every test.
-
----
-
-# 36. Run the Test Suite
-
-Before running automation locally, the FastAPI server must be running.
-
-## Terminal 1 — Start the API
-
-From the backend directory:
-
-```bash
-cd ~/Desktop/API_Automation/ecommerce-sdet-project/backend
-source .venv/bin/activate
-uvicorn main:app --reload
-```
-
-Keep this terminal running.
-
-## Terminal 2 — Run Automation
-
-Open another terminal.
-
-Go to the project root:
-
-```bash
-cd ~/Desktop/API_Automation/ecommerce-sdet-project
-```
-
-Activate the virtual environment:
-
-```bash
-source backend/.venv/bin/activate
-```
-
-Run all tests:
-
-```bash
-python -m pytest -v
-```
-
----
-
-# 37. Run Only Positive Tests
-
-Use:
-
-```bash
-python -m pytest -v -m positive
-```
-
-This runs tests marked:
-
-```python
-@pytest.mark.positive
-```
-
----
-
-# 38. Run Only Negative Tests
-
-Use:
-
-```bash
-python -m pytest -v -m negative
-```
-
-This runs tests marked:
-
-```python
-@pytest.mark.negative
-```
-
----
-
-# 39. Generate Allure Results
-
-Run:
-
-```bash
-python -m pytest -v --alluredir=allure-results
-```
-
-This creates:
-
-```text
-allure-results/
-```
-
-These are raw Allure result files.
-
-They are not the final visual report.
-
----
-
-# 40. Generate the Allure Report
-
-Run:
-
-```bash
-allure generate allure-results -o allure-report
-```
-
-This creates:
-
-```text
-allure-report/
-```
-
----
-
-# 41. Open the Allure Report
-
-Run:
-
-```bash
-allure open allure-report
-```
-
-The report opens in the browser.
-
----
-
-# 42. Prevent Old Allure Results
-
-If previous test results exist, they can appear in a new report.
-
-Instead of manually deleting the directory every time, use:
-
-```bash
-python -m pytest -v --clean-alluredir --alluredir=allure-results
-```
-
-`--clean-alluredir` cleans the existing Allure result directory before the new test run.
-
-When generating the report, use:
-
-```bash
-allure generate allure-results -o allure-report --clean
-```
-
-`--clean` cleans the existing generated Allure report before generating the new one.
-
----
-
-# 43. Create a One-Command Test Runner
-
-Running all the commands manually is unnecessary.
-
-Create this file at the project root:
-
-```text
-run_tests.sh
-```
-
-Use:
-
-```bash
-#!/bin/bash
-
-if [ "$1" = "all" ]; then
-    python -m pytest -v --clean-alluredir --alluredir=allure-results
-else
-    python -m pytest -v -m "$1" --clean-alluredir --alluredir=allure-results
-fi
-
-allure generate allure-results -o allure-report --clean
-allure open allure-report
-```
-
-Make the script executable:
-
-```bash
-chmod +x run_tests.sh
-```
-
----
-
-# 44. Run All Tests Using the Script
-
-To run everything:
-
-```bash
-./run_tests.sh all
-```
-
-The `all` argument is handled specially.
-
-The script runs:
-
-```bash
-python -m pytest -v
-```
-
-instead of:
-
-```bash
-python -m pytest -v -m all
-```
-
-because `all` is not a Pytest marker.
-
----
-
-# 45. Run Positive Tests Using the Script
-
-```bash
-./run_tests.sh positive
-```
-
-The script internally runs:
-
-```bash
-python -m pytest -v -m positive --clean-alluredir --alluredir=allure-results
-```
-
-Then it automatically:
-
-1. Generates the Allure report.
-2. Cleans the previous generated report.
-3. Opens the new report.
-
----
-
-# 46. Run Negative Tests Using the Script
-
-```bash
-./run_tests.sh negative
-```
-
-This runs only tests marked:
-
-```python
-@pytest.mark.negative
-```
-
-and automatically generates and opens the Allure report.
-
----
-
-# 47. Current Project Structure
-
-The project currently looks like:
-
-```text
-ecommerce-sdet-project/
+ecommerce-sdet-automation/
+│
+├── alembic/
+│   └── versions/
 │
 ├── backend/
-│   ├── .venv/
 │   ├── app/
 │   │   ├── __init__.py
 │   │   ├── database.py
-│   │   └── models.py
-│   ├── ecommerce.db
-│   ├── main.py
-│   └── requirements.txt
+│   │   ├── models.py
+│   │   ├── config.py
+│   │   └── security.py
+│   │
+│   └── main.py
 │
 ├── framework/
 │   ├── __init__.py
@@ -1545,34 +152,1161 @@ ecommerce-sdet-project/
 │
 ├── tests/
 │   ├── conftest.py
-│   └── test_products.py
+│   ├── test_products.py
+│   ├── test_users.py
+│   └── test_auth.py
 │
-├── logs/
-│   └── test.log
-│
+├── .env.example
+├── .gitignore
+├── alembic.ini
 ├── pytest.ini
+├── requirements.txt
 ├── run_tests.sh
-└── .gitignore
+├── PROJECT_SETUP_GUIDE.md
+└── README.md
 ```
 
-Generated/local directories may also exist:
+There are four important areas:
+
+| Folder       | Responsibility                           |
+| ------------ | ---------------------------------------- |
+| `backend/`   | Contains the API being tested            |
+| `framework/` | Contains reusable automation utilities   |
+| `test_data/` | Stores external test data                |
+| `tests/`     | Contains the actual automated test cases |
+
+The remaining root-level files configure the project, manage dependencies, control execution, and document the framework.
+
+---
+
+# 4. Understanding the Backend
+
+The `backend/` directory contains the FastAPI application.
+
+This is the application that the automation framework tests.
+
+Its main components are:
+
+```text
+backend/
+│
+├── app/
+│   ├── __init__.py
+│   ├── database.py
+│   ├── models.py
+│   ├── config.py
+│   └── security.py
+│
+└── main.py
+```
+
+## 4.1 `backend/main.py` — Main FastAPI application
+
+This is the entry point of the backend application.
+
+It defines the FastAPI application object and the API endpoints.
+
+The application includes functionality for:
+
+**Product APIs**
+
+* Create a product.
+* Get all products.
+* Get a product by ID.
+* Update a product using PUT.
+* Partially update a product using PATCH.
+* Delete a product.
+
+**User and authentication functionality**
+
+* User-related API operations.
+* User login.
+* Access to the currently authenticated user's profile.
+
+It also contains request and response handling, validation, and the connection between API endpoints and the supporting backend components.
+
+### What is Pydantic doing here?
+
+Pydantic is used to validate incoming request data.
+
+For example, a product creation request may require:
+
+* A non-empty product name.
+* A price greater than zero.
+* Stock greater than or equal to zero.
+
+If the request does not satisfy the defined validation rules, FastAPI returns a validation error rather than processing invalid data.
+
+This is useful when testing negative scenarios because the framework can verify how the API responds to invalid input.
+
+## 4.2 `backend/app/database.py` — Database connection
+
+This file manages the database connection and SQLAlchemy sessions.
+
+The project uses SQLite.
+
+Its responsibilities include:
+
+* Creating the database engine.
+* Configuring database connections.
+* Creating database sessions.
+* Providing sessions to API endpoints.
+* Supporting session cleanup.
+
+### What is a database session?
+
+A database session represents a working connection through which the application performs database operations.
+
+For example, when the API creates a product:
+
+1. The API receives the request.
+2. The endpoint obtains a database session.
+3. SQLAlchemy uses the session to insert the product.
+4. The transaction is committed.
+5. The session is eventually closed.
+
+The API uses this database layer rather than opening a separate database connection inside every endpoint.
+
+## 4.3 `backend/app/models.py` — SQLAlchemy models
+
+This file defines the SQLAlchemy models representing the application's database tables.
+
+The project includes product and user-related models.
+
+A model describes how application data is represented in the database.
+
+For example, a product model represents a product record with fields such as:
+
+```text
+Product
+│
+├── id
+├── name
+├── price
+└── stock
+```
+
+The model is used by SQLAlchemy when interacting with the database.
+
+**Important distinction:**
+
+* Pydantic models are used for request/response validation.
+* SQLAlchemy models represent database tables and records.
+
+They serve different purposes even though they may describe similar data.
+
+## 4.4 `backend/app/config.py` — Backend configuration
+
+This file loads application configuration from environment variables.
+
+The JWT-related settings include:
+
+```text
+JWT_SECRET_KEY
+JWT_ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES
+```
+
+The actual values are stored in the local `.env` file.
+
+Why not hardcode them?
+
+Configuration may differ between local development, QA, and staging environments. Keeping it outside the source code makes the application easier and safer to configure.
+
+## 4.5 `backend/app/security.py` — Security functionality
+
+This file contains reusable security-related functionality.
+
+Its responsibilities include:
+
+* Password hashing.
+* Password verification.
+* JWT token creation.
+* JWT token validation.
+
+### Password hashing
+
+Passwords should not be stored as plain text.
+
+When a user is created, the application hashes the password before storing it in the database.
+
+During login, the application verifies the supplied password against the stored password hash.
+
+The application uses password hashing rather than storing the original password.
+
+### JWT token creation
+
+After successful login, the backend creates a signed access token.
+
+The token contains information identifying the authenticated user and its validity period.
+
+The token is signed using the configured JWT secret.
+
+### JWT token validation
+
+When a protected endpoint receives a request, the backend validates the token.
+
+If the token is valid and the user is allowed to access the resource, the request can proceed.
+
+If authentication fails, the API rejects the request.
+
+## 4.6 `backend/app/__init__.py`
+
+This file marks the `app` directory as a Python package.
+
+It allows Python modules inside the directory to be imported using package-based imports.
+
+---
+
+# 5. Understanding the Database and Alembic
+
+The project uses:
+
+* SQLite as the database.
+* SQLAlchemy as the ORM.
+* Alembic for database migrations.
+
+## 5.1 What is an ORM?
+
+ORM stands for Object Relational Mapper.
+
+Instead of writing every database operation directly as SQL, SQLAlchemy allows the application to work with Python classes and objects that represent database records.
+
+For example, the application can create a product using a SQLAlchemy model and database session.
+
+SQLAlchemy translates the operation into the corresponding database operation.
+
+## 5.2 Why use Alembic?
+
+Consider what happens when an application evolves.
+
+Initially, a product table may contain:
+
+```text
+id
+name
+price
+```
+
+Later, the application may need a new field:
+
+```text
+stock
+```
+
+The database structure has changed.
+
+Alembic manages these changes through migration files.
+
+Instead of manually recreating the database every time the schema changes, developers create and apply migrations.
+
+## 5.3 Important Alembic files
+
+```text
+alembic/
+│
+├── versions/
+├── env.py
+├── script.py.mako
+└── README
+
+alembic.ini
+```
+
+| File or folder      | Purpose                                                    |
+| ------------------- | ---------------------------------------------------------- |
+| `alembic.ini`       | Main Alembic configuration                                 |
+| `alembic/env.py`    | Configures the migration environment and database metadata |
+| `alembic/versions/` | Stores individual migration files                          |
+| `script.py.mako`    | Template used to generate migration scripts                |
+
+## 5.4 What is a migration revision?
+
+A migration revision is a file describing a database schema change.
+
+It typically contains two operations:
+
+* `upgrade()` — applies the change.
+* `downgrade()` — reverses the change.
+
+For example, a migration might add a column to an existing table.
+
+## 5.5 Applying migrations
+
+The project setup uses:
+
+```bash
+alembic upgrade head
+```
+
+This applies pending migrations and updates the database to the latest revision.
+
+The database is stored locally at:
+
+```text
+backend/ecommerce.db
+```
+
+Each developer has their own local database.
+
+---
+
+# 6. Understanding JWT Authentication
+
+JWT stands for JSON Web Token.
+
+It is used to represent an authenticated user's identity when making requests to protected API endpoints.
+
+## 6.1 Authentication flow
+
+The basic login flow is:
+
+```text
+Client
+  |
+  |  Login credentials
+  v
+POST /auth/login
+  |
+  v
+FastAPI verifies credentials
+  |
+  v
+Password verification
+  |
+  v
+JWT access token generated
+  |
+  v
+Token returned to client
+```
+
+After login, the client sends the token when accessing protected endpoints.
+
+```text
+Client
+  |
+  |  Authorization: Bearer <token>
+  v
+Protected API endpoint
+  |
+  v
+JWT validation
+  |
+  +----------------------+
+  |                      |
+  v                      v
+Valid token          Invalid token
+  |                      |
+  v                      v
+Continue request     401 Unauthorized
+```
+
+## 6.2 Login endpoint
+
+The login endpoint is:
+
+```text
+POST /auth/login
+```
+
+A successful login returns an access token.
+
+The token is generated by the application. A developer does not need to manually construct one.
+
+## 6.3 Protected endpoint
+
+The project includes:
+
+```text
+GET /users/me
+```
+
+This endpoint returns information about the currently authenticated user and requires a valid JWT.
+
+The token is sent in the HTTP Authorization header:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+## 6.4 Why does the framework need authentication fixtures?
+
+Several tests need an authenticated user.
+
+Without a reusable fixture, each test would need to:
+
+1. Create or identify a user.
+2. Send login credentials.
+3. Extract the access token.
+4. Build an Authorization header.
+5. Send the protected request.
+
+This would repeat the same setup logic across multiple tests.
+
+The framework uses fixtures to centralize reusable authentication setup. Tests can then request the required fixture rather than implementing the login process repeatedly.
+
+---
+
+# 7. Understanding the Automation Framework
+
+The automation framework is maintained inside:
+
+```text
+framework/
+```
+
+Its purpose is to keep reusable automation functionality separate from individual test cases.
+
+The current framework contains:
+
+```text
+framework/
+│
+├── __init__.py
+├── api_client.py
+├── assertions.py
+├── config.py
+├── data_reader.py
+└── logger.py
+```
+
+Let's understand why each file exists.
+
+## 7.1 `framework/api_client.py` — Central API client
+
+This file contains the reusable API client.
+
+Without a central API client, every test would need to handle API requests directly.
+
+For example:
+
+```python
+requests.get(...)
+requests.post(...)
+requests.put(...)
+requests.patch(...)
+requests.delete(...)
+```
+
+Instead, the tests use methods exposed by the API client:
+
+```python
+api_client.get()
+api_client.post()
+api_client.put()
+api_client.patch()
+api_client.delete()
+```
+
+These methods provide a common interface for sending API requests.
+
+### What does the API client handle?
+
+It centralizes common request-handling functionality, including:
+
+* Base URL usage.
+* Request timeout.
+* HTTP request execution.
+* Optional request headers.
+* Allure request attachments.
+* Allure response attachments.
+
+### Why is this useful?
+
+Imagine the base URL changes from a local environment to a QA environment.
+
+Without a reusable client, the base URL might need to be changed in several test files.
+
+With a centralized configuration and API client, common request behavior can be managed in one place.
+
+It also prevents every test from repeating the same request-handling logic.
+
+### How does a test use it?
+
+A test receives the API client through a Pytest fixture.
+
+It can then send a request:
+
+```python
+response = api_client.get("/products")
+```
+
+The API client builds and sends the HTTP request and returns the response for validation.
+
+## 7.2 `framework/config.py` — Framework configuration
+
+This file contains configuration used by the automation framework.
+
+Examples include:
+
+```text
+BASE_URL
+REQUEST_TIMEOUT
+```
+
+The base URL identifies the API that the framework communicates with.
+
+The request timeout controls how long the client waits for an API response before timing out.
+
+Keeping these values in one configuration module avoids repeating them in individual tests.
+
+**Do not confuse this file with `backend/app/config.py`.**
+
+| File                    | Responsibility                                                    |
+| ----------------------- | ----------------------------------------------------------------- |
+| `framework/config.py`   | Configuration for API automation                                  |
+| `backend/app/config.py` | Configuration for the FastAPI application, including JWT settings |
+
+They belong to two different parts of the project.
+
+## 7.3 `framework/data_reader.py` — YAML data reader
+
+This file is responsible for reading test data from YAML files.
+
+Instead of placing every test input directly inside a test function, the framework reads external data.
+
+For example, the test data is maintained in:
+
+```text
+test_data/test_data.yaml
+```
+
+The data reader makes that information available to the test framework.
+
+### Why use a separate data reader?
+
+It separates two responsibilities:
+
+* The YAML file stores test inputs.
+* The data reader loads those inputs.
+* The test functions use the loaded data.
+
+This makes test data easier to maintain without changing the test implementation.
+
+## 7.4 `framework/assertions.py` — Reusable assertions
+
+This file contains reusable response-validation functions.
+
+For example, multiple tests may need to verify that a product response contains the expected fields and values.
+
+Instead of repeating the same validation logic in every test, common checks can be maintained in one place.
+
+This helps:
+
+* Reduce duplicate assertions.
+* Keep test functions easier to read.
+* Maintain consistent response validation.
+* Update common validation logic centrally.
+
+## 7.5 `framework/logger.py` — Logging configuration
+
+This file contains the logging configuration used by the automation framework.
+
+Logs are:
+
+* Displayed in the terminal.
+* Written to `logs/test.log`.
+
+Logging helps understand what happened during test execution.
+
+For example, logs can help identify which endpoint was called and which execution stage was reached.
+
+This is particularly useful when a test fails and you need to investigate the execution flow.
+
+---
+
+# 8. Understanding Test Data Management
+
+The test data is maintained in:
+
+```text
+test_data/test_data.yaml
+```
+
+The purpose of this folder is to separate test inputs from test logic.
+
+For example, product test data can include:
+
+* Valid product information.
+* Invalid product information.
+* Expected values used during validation.
+
+The YAML file contains data groups such as:
+
+```text
+products
+invalid_products
+```
+
+The exact values are maintained in the YAML file.
+
+## 8.1 Why not write all test data directly inside test functions?
+
+Consider a test that creates a product.
+
+If the request body is hardcoded inside the test, changing the product name, price, or stock requires editing the test code.
+
+If the data is maintained in YAML, the test can use the same logic with different input values.
+
+This provides a separation between:
+
+**Test logic:** What should be tested?
+
+**Test data:** Which values should be used?
+
+## 8.2 How does the data reach the test?
+
+The flow is:
+
+```text
+test_data.yaml
+      |
+      v
+data_reader.py
+      |
+      v
+conftest.py
+      |
+      v
+Test function
+      |
+      v
+API request
+```
+
+The data reader loads the YAML file, and the fixtures make the required data available to the test functions.
+
+---
+
+# 9. Understanding Pytest Fixtures
+
+The reusable Pytest fixtures are maintained in:
+
+```text
+tests/conftest.py
+```
+
+This is one of the most important files in the automation framework.
+
+## 9.1 What is a fixture?
+
+A fixture is a reusable function that provides setup, data, or resources required by a test.
+
+For example, several tests may need an API client.
+
+Instead of creating a new API client inside every test, a fixture can provide it.
+
+Other fixtures can provide:
+
+* Test data.
+* Product setup.
+* User setup.
+* Authentication tokens.
+
+## 9.2 Why use `conftest.py`?
+
+Pytest automatically discovers fixtures defined in `conftest.py` for tests in its directory hierarchy.
+
+This means test files can request fixtures by name without importing them individually.
+
+For example, a test may look like:
+
+```python
+def test_get_products(api_client):
+    response = api_client.get("/products")
+```
+
+Here:
+
+* `test_get_products` is the test function.
+* `api_client` is the fixture requested by the test.
+* Pytest finds the fixture and provides its return value.
+
+The test does not need to create the API client itself.
+
+## 9.3 Fixture setup and teardown
+
+Fixtures can also manage resources before and after a test.
+
+A fixture using `yield` can provide a resource to the test and perform cleanup afterward.
+
+The general execution flow is:
+
+```text
+Fixture starts
+      |
+      v
+Setup operations
+      |
+      v
+    yield
+      |
+      v
+Test executes
+      |
+      v
+Fixture resumes
+      |
+      v
+Teardown / cleanup
+```
+
+This is useful when a test needs a product or user to exist before execution.
+
+## 9.4 Why centralize authentication setup?
+
+An authenticated test may need an access token.
+
+The framework uses authentication-related fixtures to handle reusable login and token setup.
+
+The test can request the required fixture instead of repeating the login process.
+
+This makes the test focused on the behavior it is actually testing.
+
+---
+
+# 10. Understanding Pytest Parameterization
+
+Parameterization allows the same test logic to execute with multiple sets of data.
+
+For example, the YAML file may contain:
+
+```text
+Laptop
+Mouse
+Keyboard
+```
+
+Instead of writing three separate product creation tests, Pytest can execute the same test using each data set.
+
+The execution may appear as:
+
+```text
+test_create_product[Laptop]
+test_create_product[Mouse]
+test_create_product[Keyboard]
+```
+
+Each entry represents a separate test execution using different input data.
+
+### Why is this useful?
+
+Without parameterization:
+
+* The same test logic may be repeated.
+* Adding new test data may require creating another test function.
+
+With parameterization:
+
+* One test function can cover multiple input combinations.
+* Test data can be expanded separately.
+* Pytest reports each parameterized execution independently.
+
+In this project, reusable fixtures and test data are used together to provide data to the test functions.
+
+---
+
+# 11. Understanding the Test Files
+
+The `tests/` directory contains the actual automated test cases.
+
+```text
+tests/
+│
+├── conftest.py
+├── test_products.py
+├── test_users.py
+└── test_auth.py
+```
+
+Each test file groups scenarios by API functionality.
+
+## 11.1 `tests/test_products.py`
+
+Contains product API test scenarios.
+
+The product functionality includes:
+
+* Get all products.
+* Create a product.
+* Get a product by ID.
+* Update a product using PUT.
+* Partially update a product using PATCH.
+* Delete a product.
+
+It also includes negative scenarios, such as:
+
+* Invalid product price.
+* Empty product name.
+* Negative stock.
+
+The tests validate the returned HTTP status codes and response data.
+
+## 11.2 `tests/test_users.py`
+
+Contains user-related API test scenarios.
+
+These tests validate the user-related functionality provided by the backend.
+
+The test setup and common data are handled using reusable fixtures where applicable.
+
+## 11.3 `tests/test_auth.py`
+
+Contains authentication and authorization test scenarios.
+
+The purpose is to verify that protected endpoints behave correctly for authenticated and unauthenticated requests.
+
+**Positive scenarios include:**
+
+* Accessing the authenticated user's profile with a valid JWT.
+* Validating the returned user information.
+
+**Negative scenarios include:**
+
+* Accessing a protected endpoint without a token.
+* Accessing a protected endpoint with an invalid token.
+* Preventing an inactive user from accessing a protected endpoint.
+
+For example:
+
+```text
+Valid JWT
+   |
+   v
+Authentication succeeds
+   |
+   v
+Request is allowed to proceed
+
+Missing / Invalid JWT
+   |
+   v
+Authentication fails
+   |
+   v
+401 Unauthorized
+```
+
+These tests help verify that authentication is enforced by the API.
+
+---
+
+# 12. Understanding Pytest Configuration and Markers
+
+The Pytest configuration is maintained in:
+
+```text
+pytest.ini
+```
+
+This file contains project-level Pytest configuration, including the markers used to categorize test scenarios.
+
+The project uses:
+
+```python
+@pytest.mark.positive
+```
+
+and:
+
+```python
+@pytest.mark.negative
+```
+
+### What are markers?
+
+Markers allow tests to be categorized.
+
+For example:
+
+* A positive test validates expected behavior with valid input.
+* A negative test validates how the API handles invalid input or unsuccessful operations.
+
+Markers make it possible to execute selected groups of tests.
+
+Run positive tests:
+
+```bash
+python -m pytest -v -m positive
+```
+
+Run negative tests:
+
+```bash
+python -m pytest -v -m negative
+```
+
+Run all tests:
+
+```bash
+python -m pytest -v
+```
+
+The markers do not change how the test itself works. They help organize and select tests during execution.
+
+---
+
+# 13. Understanding Logging
+
+The logging configuration is maintained in:
+
+```text
+framework/logger.py
+```
+
+The framework writes logs to:
+
+```text
+logs/test.log
+```
+
+Logs are also displayed in the terminal.
+
+### Why do we need logging?
+
+When an automation test fails, the failure message alone may not always explain what happened before the failure.
+
+Logs help trace the execution.
+
+For example, they can help you understand:
+
+* Which operation was executed.
+* Which request was sent.
+* Which stage of execution was reached.
+* Where an error occurred.
+
+Logging is especially useful when debugging failures across multiple tests.
+
+The `logs/` directory is generated locally and excluded from Git.
+
+---
+
+# 14. Understanding Allure Reporting
+
+The project uses Allure to generate visual test execution reports.
+
+There are two separate components:
+
+| Component       | Responsibility                              |
+| --------------- | ------------------------------------------- |
+| `allure-pytest` | Collects test execution results from Pytest |
+| Allure CLI      | Generates and opens the HTML report         |
+
+The Python plugin is installed through `requirements.txt`. The CLI is installed separately.
+
+## 14.1 Allure steps
+
+Allure steps help organize test execution into readable actions.
+
+For example:
+
+```python
+with allure.step("Create Product"):
+    response = api_client.post("/products", product_data)
+```
+
+A test can also contain a separate validation step.
+
+```python
+with allure.step("Validate Product Response"):
+    response_data = response.json()
+```
+
+These steps help make the report easier to understand.
+
+## 14.2 Request and response attachments
+
+The reusable API client handles Allure request and response attachments.
+
+This means individual tests do not need to repeat the same attachment logic.
+
+The attachments help investigate:
+
+* What request was sent.
+* Which endpoint was called.
+* What response was received.
+* Which status code was returned.
+
+Be careful not to expose passwords, JWT secrets, or other sensitive information in reports.
+
+## 14.3 Allure result files and HTML reports
+
+There are two important directories:
 
 ```text
 allure-results/
 allure-report/
 ```
 
-These should not be committed to Git.
+**`allure-results/`**
+
+Contains the raw execution results collected by the Pytest plugin.
+
+**`allure-report/`**
+
+Contains the generated HTML report that can be opened in a browser.
+
+The result directory is not the final visual report. The CLI uses those result files to generate the HTML report.
 
 ---
 
-# 48. Create `.gitignore`
+# 15. Understanding `run_tests.sh`
 
-Create `.gitignore` at the project root.
+The project contains a Bash script at the repository root:
 
-Use:
+```text
+run_tests.sh
+```
+
+Its purpose is to combine test execution and Allure report generation into one command.
+
+The current script is:
+
+```bash
+#!/bin/bash
+
+if [ "$1" = "all" ]; then
+
+    python -m pytest -v --clean-alluredir --alluredir=allure-results
+
+else
+
+    python -m pytest -v -m "$1" --clean-alluredir --alluredir=allure-results
+
+fi
+
+allure generate allure-results -o allure-report --clean
+
+allure open allure-report
+```
+
+## 15.1 Understanding the script
+
+### `#!/bin/bash`
+
+This tells the operating system to execute the script using Bash.
+
+### `$1`
+
+This represents the first argument passed to the script.
+
+For example:
+
+```bash
+./run_tests.sh positive
+```
+
+Here, `$1` is `positive`.
+
+### The `if` condition
+
+```bash
+if [ "$1" = "all" ]; then
+```
+
+Checks whether the first argument is `all`.
+
+If it is, the script executes:
+
+```bash
+python -m pytest -v --clean-alluredir --alluredir=allure-results
+```
+
+This runs the complete test suite.
+
+### The `else` condition
+
+If the argument is not `all`, the script executes:
+
+```bash
+python -m pytest -v -m "$1" --clean-alluredir --alluredir=allure-results
+```
+
+The `-m` option tells Pytest to select tests matching the supplied marker.
+
+For example:
+
+```bash
+./run_tests.sh negative
+```
+
+runs tests marked `negative`.
+
+### Allure report generation
+
+After the Pytest command, the script executes:
+
+```bash
+allure generate allure-results -o allure-report --clean
+```
+
+This creates a fresh HTML report from the latest Allure result files.
+
+Finally:
+
+```bash
+allure open allure-report
+```
+
+opens the generated report in the browser.
+
+## 15.2 Available execution commands
+
+| Command                   | What it does                                 |
+| ------------------------- | -------------------------------------------- |
+| `./run_tests.sh all`      | Runs all tests and generates the report      |
+| `./run_tests.sh positive` | Runs positive tests and generates the report |
+| `./run_tests.sh negative` | Runs negative tests and generates the report |
+
+Before the first execution, give the script permission:
+
+```bash
+chmod +x run_tests.sh
+```
+
+The API must already be running in another terminal.
+
+**Important implementation detail:** The current script does not stop when Pytest returns a failure status. It continues to generate and open the Allure report. This is useful because the report can show failed tests as well as passed tests.
+
+---
+
+# 16. Understanding `.env`, `.env.example`, and `.gitignore`
+
+These files are important for keeping the project configurable and safe to share.
+
+## 16.1 `.env.example`
+
+This file is committed to Git.
+
+It contains the names of the environment variables required by the application and placeholder values.
+
+It tells another developer what configuration they need to provide.
+
+## 16.2 `.env`
+
+This is the local environment configuration file.
+
+It contains the actual values used by the application, including the JWT secret.
+
+It is created locally by copying `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+It must not be committed to Git.
+
+## 16.3 `.gitignore`
+
+This file tells Git which files and folders should not be tracked.
+
+Important ignored items include:
 
 ```gitignore
+# Environment variables
+.env
+
 # Virtual environment
 backend/.venv/
 
@@ -1597,37 +1331,117 @@ allure-results/
 allure-report/
 ```
 
-Check Git:
+The `.env.example` file should remain tracked. The actual `.env` file should remain ignored.
 
-```bash
-git status
-```
-
-The ignored files should not appear as files to commit.
+The same applies to the virtual environment, local database, logs, and generated reports.
 
 ---
 
-# 49. Initialize Git
+# 17. Understanding `requirements.txt`
 
-From the project root:
+The project has a single dependency file:
 
-```bash
-git init
+```text
+requirements.txt
 ```
 
-Check:
+It contains the Python packages required by the backend and automation framework.
+
+This includes dependencies needed for areas such as:
+
+* FastAPI.
+* SQLAlchemy.
+* Alembic.
+* Requests.
+* Pytest.
+* YAML data handling.
+* Logging and configuration.
+* JWT and password security.
+* Allure Pytest integration.
+
+To install the dependencies:
 
 ```bash
-git status
+python -m pip install -r requirements.txt
 ```
+
+Using one requirements file keeps the project's Python dependency installation straightforward.
+
+Java and Allure CLI are separate system-level tools. They are not installed by the Python requirements file.
 
 ---
 
-# 50. GitHub Repository
+# 18. Understanding the Complete Test Execution Flow
 
-Create a GitHub repository for the project.
+Now that we have covered the individual components, let's connect them.
 
-The project repository used for this implementation is:
+Consider a product creation test.
+
+The flow is:
+
+```text
+                Pytest starts
+                     |
+                     v
+            Discovers the test
+                     |
+                     v
+          Requests required fixtures
+                     |
+          +----------+----------+
+          |                     |
+          v                     v
+       API Client            Test Data
+          |                     |
+          +----------+----------+
+                     |
+                     v
+             Test sends request
+                     |
+                     v
+                 Requests
+                     |
+                     v
+             FastAPI endpoint
+                     |
+                     v
+            Request validation
+                     |
+                     v
+              SQLAlchemy
+                     |
+                     v
+                SQLite DB
+                     |
+                     v
+              API response
+                     |
+                     v
+             Test assertions
+                     |
+          +----------+----------+
+          |                     |
+          v                     v
+        Logging              Allure
+          |                     |
+          +----------+----------+
+                     |
+                     v
+             Test execution result
+                     |
+                     v
+              Allure HTML report
+```
+
+For an authenticated test, the framework also provides the required authentication setup and sends the JWT through the Authorization header.
+
+This is how the backend, fixtures, API client, test data, test functions, assertions, logging, and reporting work together.
+
+---
+
+# 19. Git and GitHub
+
+The project is maintained in the GitHub repository:
 
 ```text
 jasminepal/ecommerce-sdet-automation
@@ -1639,357 +1453,144 @@ The main branch is:
 main
 ```
 
----
+The repository already exists. A developer cloning it does not need to initialize a new Git repository or add a remote.
 
-# 51. Verify Personal GitHub Authentication
+## 19.1 Check the current Git status
 
-Before connecting or pushing the project to GitHub, verify the GitHub account:
-
-```bash
-ssh -T git@github-personal
-```
-
-The SSH configuration uses the personal GitHub host alias:
-
-```text
-github-personal
-```
-
-A successful response identifies the authenticated GitHub account.
-
-This verification is important when using a machine where work and personal GitHub accounts could otherwise be mixed up.
-
----
-
-# 52. Configure Git Identity for This Repository
-
-Set the Git identity locally for this repository:
+From the project root:
 
 ```bash
-git config user.name "Your Name"
+git status
 ```
 
-```bash
-git config user.email "your-github-email@example.com"
-```
+This shows modified, staged, and untracked files.
 
-Verify:
-
-```bash
-git config user.name
-git config user.email
-```
-
-Repository-local Git configuration changes only this repository.
-
----
-
-# 53. Add the GitHub Remote
-
-Add the GitHub repository:
-
-```bash
-git remote add origin git@github-personal:YOUR_USERNAME/YOUR_REPOSITORY.git
-```
-
-Verify:
+## 19.2 Check the configured remote
 
 ```bash
 git remote -v
 ```
 
----
+This displays the repository URL configured for fetch and push.
 
-# 54. Commit the Project
+## 19.3 Stage intended changes
 
-Check the files:
+Instead of blindly staging everything, stage the files you intend to commit:
+
+```bash
+git add <file-or-folder>
+```
+
+Review the staged changes:
 
 ```bash
 git status
 ```
 
-Stage the changes:
+## 19.4 Commit changes
 
 ```bash
-git add .
+git commit -m "Describe your changes"
 ```
 
-Check what has been staged:
+A commit records the staged changes in Git history.
 
-```bash
-git status
-```
+## 19.5 Push changes
 
-Commit:
+If you use multiple GitHub accounts, verify that your terminal is authenticated to the intended account before pushing.
 
-```bash
-git commit -m "feat: complete API automation foundation"
-```
-
----
-
-# 55. Push to GitHub
-
-Before pushing, verify the personal GitHub account again:
+For the personal GitHub SSH alias configured on the original development machine:
 
 ```bash
 ssh -T git@github-personal
 ```
 
-Push:
+Then push:
 
 ```bash
-git push -u origin main
-```
-
-For future changes:
-
-```bash
-git status
-git add .
-git commit -m "your commit message"
 git push
 ```
 
----
+The `github-personal` SSH alias is specific to that machine's SSH configuration. Other developers may need to configure their own GitHub authentication.
 
-# 56. What Has Been Completed
-
-The current foundation phase covers:
-
-## API Development
-
-* FastAPI application
-* REST API endpoints
-* HTTP methods
-* Pydantic validation
-* Response models
-* CRUD operations
-* SQLite database
-* SQLAlchemy ORM
-* Database sessions
-
-## API Automation
-
-* Python
-* Requests
-* Pytest
-* API client
-* Fixtures
-* Parameterization
-* YAML test data
-* Reusable assertions
-
-## Framework Features
-
-* Central API configuration
-* Logging
-* Test data separation
-* Setup and teardown
-* Pytest markers
-* Allure steps
-* Allure request attachments
-* Allure response attachments
-* Allure report generation
-* One-command test execution
-
-## Version Control
-
-* Git
-* GitHub
-* `.gitignore`
-* Repository-local Git identity
-* SSH authentication
+Before committing, always review `git status` and ensure that `.env`, local databases, virtual environments, and generated reports are not being committed.
 
 ---
 
-# 57. Current Execution Flow
+# 20. Current Project Status
 
-The complete local execution flow is:
+The project currently contains the following completed areas.
+
+## API development
+
+* FastAPI application.
+* Product CRUD endpoints.
+* User-related APIs.
+* SQLite database.
+* SQLAlchemy models and sessions.
+* Pydantic request validation.
+* Alembic database migrations.
+
+## Authentication
+
+* Password hashing and verification.
+* JWT token generation.
+* JWT token validation.
+* Protected API access.
+* Environment-based JWT configuration.
+
+## API automation framework
+
+* Python and Requests.
+* Pytest.
+* Reusable API client.
+* Fixtures and parameterization.
+* YAML test data.
+* Reusable assertions.
+* Product, user, and authentication tests.
+* Positive and negative test scenarios.
+* Logging.
+* Allure reporting.
+* Bash test execution script.
+
+## Version control
+
+* Git repository.
+* GitHub repository.
+* `.gitignore`.
+* Git commits and push workflow.
+* SSH authentication on the original development machine.
+
+---
+
+# 21. Next Major Phase — Docker and CI/CD
+
+The next planned phase is to make the project easier to run in a consistent environment and execute automatically.
+
+The planned progression is:
 
 ```text
-FastAPI Application
-        ↓
-SQLite Database
-        ↓
-API Endpoints
-        ↓
-APIClient
-        ↓
-Requests
-        ↓
-Pytest Tests
-        ↓
-Fixtures + YAML Test Data
-        ↓
-Assertions
-        ↓
-Logs
-        ↓
-Allure Steps
-        ↓
-Allure Request/Response Attachments
-        ↓
-Allure Report
+Current API Automation Framework
+              |
+              v
+            Docker
+              |
+              v
+       Containerize API
+              |
+              v
+       Docker Compose
+              |
+              v
+       GitHub Actions
+              |
+              v
+        Automated Tests
+              |
+              v
+       Test Result Reports
 ```
 
----
+The goal is to run the API and automation tests in a repeatable environment and execute the test suite automatically whenever code is pushed to GitHub.
 
-# 58. Daily Usage
-
-## Terminal 1 — Start API
-
-```bash
-cd ~/Desktop/API_Automation/ecommerce-sdet-project/backend
-source .venv/bin/activate
-uvicorn main:app --reload
-```
-
-Keep it running.
-
-## Terminal 2 — Run all tests
-
-```bash
-cd ~/Desktop/API_Automation/ecommerce-sdet-project
-source backend/.venv/bin/activate
-./run_tests.sh all
-```
-
-## Positive tests
-
-```bash
-./run_tests.sh positive
-```
-
-## Negative tests
-
-```bash
-./run_tests.sh negative
-```
-
----
-
-# 59. Troubleshooting
-
-## Problem: `ModuleNotFoundError: No module named 'framework'`
-
-Make sure the terminal is at the project root:
-
-```bash
-cd ~/Desktop/API_Automation/ecommerce-sdet-project
-```
-
-Then run:
-
-```bash
-python -m pytest -v
-```
-
----
-
-## Problem: `Could not import module "app.main"`
-
-The current FastAPI entry point is:
-
-```text
-backend/main.py
-```
-
-Therefore, from the `backend` directory use:
-
-```bash
-uvicorn main:app --reload
-```
-
-Do not use:
-
-```bash
-uvicorn app.main:app --reload
-```
-
-unless `app/main.py` exists.
-
----
-
-## Problem: Connection refused
-
-Make sure FastAPI is running:
-
-```bash
-cd backend
-source .venv/bin/activate
-uvicorn main:app --reload
-```
-
-The automation framework currently sends requests to:
-
-```text
-http://127.0.0.1:8000
-```
-
----
-
-## Problem: HTTP 422
-
-A `422` response means the API rejected the request because the request data did not satisfy the validation rules.
-
-Check:
-
-* Request body
-* Field names
-* Data types
-* Required fields
-* Validation rules
-
-The Allure request and response attachments can help identify what was actually sent and returned.
-
----
-
-## Problem: Old Allure results appear
-
-Use:
-
-```bash
-python -m pytest -v --clean-alluredir --alluredir=allure-results
-```
-
-Then:
-
-```bash
-allure generate allure-results -o allure-report --clean
-```
-
-Or simply use:
-
-```bash
-./run_tests.sh all
-```
-
----
-
-# 60. Current Project Status
-
-## Part 1 — API Automation Foundation
-
-**Completed**
-
-The project currently contains a working local E-Commerce API and a beginner-level API automation framework.
-
-The framework supports CRUD API automation, test data management, fixtures, reusable assertions, logging, markers, Allure reporting and simplified test execution.
-
-## Next Major Phase
-
-The next phase is CI/CD using GitHub Actions.
-
-The CI pipeline will need to:
-
-1. Set up Python.
-2. Install dependencies.
-3. Start the FastAPI application.
-4. Wait for the API to become available.
-5. Run the automated tests.
-6. Generate test results.
-7. Handle Allure reporting in CI.
-   """
-
----
+This will extend the current local API automation framework into a project that also demonstrates containerization and CI/CD integration.
